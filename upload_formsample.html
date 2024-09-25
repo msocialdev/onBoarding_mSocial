@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload</title>
+    <script src="upload.js"></script>
+</head>
+<body>
+    <form id="uploadForm">
+        <input type="file" id="fileInput" />
+        <progress id="progressBar" value="0" max="100"></progress>
+        <p id="statusMessage"></p>
+        <button type="submit">Upload</button>
+    </form>
+
+    <script>
+        const apiUrl = 'https://45xhcs9iue.execute-api.ap-south-1.amazonaws.com/Release/fileupload'; // Replace with your API Gateway URL
+        const uploader = new S3Uploader(apiUrl);
+
+        document.getElementById('uploadForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const file = document.getElementById('fileInput').files[0];
+            const progressBar = document.getElementById('progressBar');
+            const statusMessage = document.getElementById('statusMessage');
+
+            try {
+                const fileUrl = await uploader.uploadFile(file, (progress) => {
+                    progressBar.value = progress;
+                });
+                statusMessage.textContent = `File uploaded successfully: ${fileUrl}`;
+            } catch (error) {
+                statusMessage.textContent = `Error: ${error}`;
+            }
+        });
+    </script>
+</body>
+</html>
