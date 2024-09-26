@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Timeline</title>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+        google.charts.load('current', { packages: ['timeline'] });
+        google.charts.setOnLoadCallback(drawChart);
+
+        const tasksData = {
+            "tasks": [
+                {
+                    "task-id": "1",
+                    "task-title": "Project Kickoff",
+                    "task-description": "Initial meeting to discuss project goals",
+                    "task-agreed": -1,
+                    "task-resources": [
+                        {
+                            "resource-id": "1",
+                            "resource-title": "Project Overview",
+                            "resource-url": "https://example.com/resource1"
+                        }
+                    ],
+                    "task-showtime": "0:8.3",
+                    "task-deadline": "4:5.2",
+                    "task-planned-start": "0:1.5",
+                    "task-planned-end": "2:7",
+                    "task-status": "In Progress",
+                    "subtasks": [
+                        {
+                            "subtask-id": "1",
+                            "subtask-title": "Research",
+                            "subtask-status": true,
+                            "subtask-planned-start": "0:2",
+                            "subtask-planned-end": "0:4"
+                        },
+                        {
+                            "subtask-id": "2",
+                            "subtask-title": "Planning",
+                            "subtask-status": true,
+                            "subtask-planned-start": "0:4",
+                            "subtask-planned-end": "1:0"
+                        }
+                    ],
+                    "task-submissions": []
+                },
+                {
+                    "task-id": "2",
+                    "task-title": "Development Phase",
+                    "task-description": "Development work for the project",
+                    "task-agreed": -1,
+                    "task-resources": [],
+                    "task-showtime": "0:8.3",
+                    "task-deadline": "4:5.2",
+                    "task-planned-start": "1:0",
+                    "task-planned-end": "3:5",
+                    "task-status": "Not Started",
+                    "subtasks": [
+                        {
+                            "subtask-id": "3",
+                            "subtask-title": "Implementation",
+                            "subtask-status": false,
+                            "subtask-planned-start": "1:1",
+                            "subtask-planned-end": "2:0"
+                        }
+                    ],
+                    "task-submissions": []
+                }
+            ]
+        };
+
+        function convertToDate(day, time) {
+            if (isNaN(day) || isNaN(time)) {
+                console.error("Invalid day or time format:", day, time);
+                return new Date(); // Return current date if invalid
+            }
+
+            const [hours, minutes] = time.split(':').map(Number);
+            const totalMinutes = (day * 24 * 60) + (hours * 60) + Math.round(minutes * 30); // each day has 48 half-hours
+            const baseDate = new Date();
+            baseDate.setHours(0, 0, 0, 0); // Reset to start of the day
+            baseDate.setMinutes(baseDate.getMinutes() + totalMinutes); // Add calculated minutes
+            return baseDate; // Return the calculated date
+        }
+
+        function drawChart() {
+            const container = document.getElementById('timeline');
+            const chart = new google.visualization.Timeline(container);
+            const dataTable = new google.visualization.DataTable();
+
+            dataTable.addColumn({ type: 'string', id: 'Task' });
+            dataTable.addColumn({ type: 'string', id: 'Subtask' });
+            dataTable.addColumn({ type: 'date', id: 'Start' });
+            dataTable.addColumn({ type: 'date', id: 'End' });
+
+            tasksData.tasks.forEach(task => {
+                const taskStartArr = task["task-planned-start"].split(':');
+                const taskEndArr = task["task-planned-end"].split(':');
+
+                // Ensure task start and end are valid
+                if (taskStartArr.length !== 2 || taskEndArr.length !== 2) {
+                    console.error("Invalid task time format:", task["task-planned-start"], task["task-planned-end"]);
+                    return; // Skip this task if format is incorrect
+                }
+
+                // Convert task start and end times
+                const taskStartDate = convertToDate(parseInt(taskStartArr[0]), taskStartArr[1]);
+                const taskEndDate = convertToDate(parseInt(taskEndArr[0]), taskEndArr[1]);
+
+                // Add main task row
+                dataTable.addRow([task["task-title"], '', taskStartDate, taskEndDate]);
+
+                // Iterate through subtasks
+                task.subtasks.forEach(subtask => {
+                    const subtaskStartArr = subtask["subtask-planned-start"].split(':');
+                    const subtaskEndArr = subtask["subtask-planned-end"].split(':');
+
+                    // Ensure subtask start and end are valid
+                    if (subtaskStartArr.length !== 2 || subtaskEndArr.length !== 2) {
+                        console.error("Invalid subtask time format:", subtask["subtask-planned-start"], subtask["subtask-planned-end"]);
+                        return; // Skip this subtask if format is incorrect
+                    }
+
+                    // Convert subtask start and end times
+                    const subtaskStartDate = convertToDate(parseInt(subtaskStartArr[0]), subtaskStartArr[1]);
+                    const subtaskEndDate = convertToDate(parseInt(subtaskEndArr[0]), subtaskEndArr[1]);
+
+                    dataTable.addRow([task["task-title"], subtask["subtask-title"], subtaskStartDate, subtaskEndDate]);
+                });
+            });
+
+            chart.draw(dataTable);
+        }
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #timeline {
+            height: 400px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>Interactive Timeline</h1>
+    <div id="timeline"></div>
+</body>
+</html>

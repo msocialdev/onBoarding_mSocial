@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+    <title>Role Management System</title>
+    <style>
+        body {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #sidebar {
+            width: 250px;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        #content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .resource-field {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .resource-field input {
+            margin: 0;
+        }
+        .delete-resource-btn {
+            background: red;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .form-section {
+            margin-bottom: 30px;
+        }
+        .task-overview {
+            font-size: 0.9em;
+            color: gray;
+        }
+        .task-overview span {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <h5>Menu</h5>
+    <ul>
+        <li><a href="#" id="showRoles">Roles</a></li>
+        <li><a href="#" id="showRoleDetails">Role Details</a></li>
+    </ul>
+</div>
+
+<div id="content">
+    <div id="rolesSection" class="form-section">
+        <h5>Roles Management</h5>
+        <button id="addRoleBtn" class="btn">Add Role</button>
+        <h5>Existing Roles</h5>
+        <ul id="roleList" class="collection"></ul>
+    </div>
+
+    <div id="roleDetailsSection" class="form-section" style="display:none;">
+        <h5>Role Details Management</h5>
+        <div class="input-field">
+            <select id="roleSelect">
+                <option value="" disabled selected>Select a role</option>
+            </select>
+            <label>Choose Role</label>
+        </div>
+        <button id="addTaskBtn" class="btn" style="display:none;">Add Task</button>
+
+        <h5>Tasks</h5>
+        <ul id="taskList" class="collection"></ul>
+    </div>
+</div>
+
+<!-- Add/Edit Role Modal -->
+<div id="roleModal" class="modal">
+    <div class="modal-content">
+        <h4 id="modalRoleTitle">Add Role</h4>
+        <form id="roleForm">
+            <div class="input-field">
+                <input type="text" id="roleTitle" required>
+                <label for="roleTitle">Role Title</label>
+            </div>
+            <div class="input-field">
+                <label>
+                    <input type="checkbox" id="roleStatus" />
+                    <span>Active</span>
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn">Save Role</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add/Edit Task Modal -->
+<div id="taskModal" class="modal">
+    <div class="modal-content">
+        <h4 id="modalTaskTitle">Add Task</h4>
+        <form id="taskFormModal">
+            <div class="input-field">
+                <input type="text" id="taskTitleModal" required>
+                <label for="taskTitleModal">Task Title</label>
+            </div>
+            <div class="input-field">
+                <textarea id="taskDescriptionModal" class="materialize-textarea" required></textarea>
+                <label for="taskDescriptionModal">Task Description</label>
+            </div>
+            <div class="input-field">
+                <input type="text" id="taskStartModal" required>
+                <label for="taskStartModal">Task Start Time</label>
+            </div>
+            <div class="input-field">
+                <input type="text" id="taskEndModal" required>
+                <label for="taskEndModal">Task End Time</label>
+            </div>
+            <div class="input-field">
+                <div id="resourceInputs"></div>
+                <button id="addResourceBtn" class="btn">Add Resource</button>
+            </div>
+            <button type="submit" class="btn">Save Task</button>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+<script>
+    let roles = [];
+    let editingRoleIndex = null;
+    let selectedRoleIndex = null;
+    let editingTaskIndex = null;
+
+    $(document).ready(function() {
+        $('.modal').modal();
+        $('select').formSelect();
+
+        // Show Roles Section
+        $('#showRoles').click(function() {
+            $('#rolesSection').show();
+            $('#roleDetailsSection').hide();
+        });
+
+        // Show Role Details Section
+        $('#showRoleDetails').click(function() {
+            $('#rolesSection').hide();
+            $('#roleDetailsSection').show();
+            updateRoleSelect();
+        });
+
+        // Open Add Role Modal
+        $('#addRoleBtn').click(function() {
+            editingRoleIndex = null;
+            $('#roleTitle').val('');
+            $('#roleStatus').prop('checked', false);
+            $('#modalRoleTitle').text('Add Role');
+            M.updateTextFields();
+            $('#roleModal').modal('open');
+        });
+
+        // Add/Edit Role
+        $('#roleForm').on('submit', function(e) {
+            e.preventDefault();
+            const roleData = {
+                'role-title': $('#roleTitle').val(),
+                'role-status': $('#roleStatus').is(':checked'),
+                'tasks': []
+            };
+
+            if (editingRoleIndex !== null) {
+                roles[editingRoleIndex] = roleData;
+            } else {
+                roles.push(roleData);
+            }
+            updateRoleList();
+            $('#roleModal').modal('close');
+        });
+
+        // Delete Role
+        $(document).on('click', '.delete-role', function() {
+            const index = $(this).data('index');
+            roles.splice(index, 1);
+            updateRoleList();
+            updateRoleSelect();
+        });
+
+        // Edit Role
+        $(document).on('click', '.edit-role', function() {
+            editingRoleIndex = $(this).data('index');
+            const role = roles[editingRoleIndex];
+            $('#roleTitle').val(role['role-title']);
+            $('#roleStatus').prop('checked', role['role-status']);
+            $('#modalRoleTitle').text('Edit Role');
+            M.updateTextFields();
+            $('#roleModal').modal('open');
+        });
+
+        // Show Task Form when Role is selected
+        $('#roleSelect').change(function() {
+            selectedRoleIndex = $('#roleSelect option:selected').index() - 1;
+            const selectedRole = roles[selectedRoleIndex];
+            updateTaskList(selectedRole.tasks);
+            $('#addTaskBtn').show();
+        });
+
+        // Open Add Task Modal
+        $('#addTaskBtn').click(function() {
+            editingTaskIndex = null;
+            resetTaskModal();
+            $('#modalTaskTitle').text('Add Task');
+            $('#taskModal').modal('open');
+        });
+
+        // Edit Task
+        $(document).on('click', '.edit-task', function() {
+            editingTaskIndex = $(this).data('index');
+            const task = roles[selectedRoleIndex].tasks[editingTaskIndex];
+            $('#taskTitleModal').val(task['task-title']);
+            $('#taskDescriptionModal').val(task['task-description']);
+            $('#taskStartModal').val(task['task-start-time']);
+            $('#taskEndModal').val(task['task-end-time']);
+            $('#resourceInputs').empty();
+            task.resources.forEach((resource, index) => {
+                addResourceField(resource.title, resource.url, index);
+            });
+            $('#modalTaskTitle').text('Edit Task');
+            M.updateTextFields();
+            $('#taskModal').modal('open');
+        });
+
+        // Add/Edit Task
+        $('#taskFormModal').on('submit', function(e) {
+            e.preventDefault();
+            const taskData = {
+                'task-title': $('#taskTitleModal').val(),
+                'task-description': $('#taskDescriptionModal').val(),
+                'task-start-time': $('#taskStartModal').val(),
+                'task-end-time': $('#taskEndModal').val(),
+                'resources': []
+            };
+
+            $('#resourceInputs .resource-field').each(function() {
+                const resourceTitle = $(this).find('.resource-title').val();
+                const resourceUrl = $(this).find('.resource-url').val();
+                taskData.resources.push({ title: resourceTitle, url: resourceUrl });
+            });
+
+            if (editingTaskIndex !== null) {
+                roles[selectedRoleIndex].tasks[editingTaskIndex] = taskData;
+            } else {
+                roles[selectedRoleIndex].tasks.push(taskData);
+            }
+
+            updateTaskList(roles[selectedRoleIndex].tasks);
+            $('#taskModal').modal('close');
+        });
+
+        // Delete Task
+        $(document).on('click', '.delete-task', function() {
+            const index = $(this).data('index');
+            roles[selectedRoleIndex].tasks.splice(index, 1);
+            updateTaskList(roles[selectedRoleIndex].tasks);
+        });
+
+        // Add Resource Button
+        $('#addResourceBtn').click(function(e) {
+            e.preventDefault();
+            addResourceField();
+        });
+
+        // Delete Resource Button
+        $(document).on('click', '.delete-resource-btn', function() {
+            $(this).closest('.resource-field').remove();
+        });
+
+        // Helper Functions
+        function addResourceField(title = '', url = '', index = null) {
+            const resourceHtml = `
+                <div class="resource-field">
+                    <input type="text" class="resource-title" placeholder="Resource Title" value="${title}">
+                    <input type="text" class="resource-url" placeholder="Resource URL" value="${url}">
+                    <button class="delete-resource-btn btn-small">X</button>
+                </div>`;
+            $('#resourceInputs').append(resourceHtml);
+        }
+
+        function resetTaskModal() {
+            $('#taskTitleModal').val('');
+            $('#taskDescriptionModal').val('');
+            $('#taskStartModal').val('');
+            $('#taskEndModal').val('');
+            $('#resourceInputs').empty();
+        }
+
+        // Update Role List UI
+        function updateRoleList() {
+            $('#roleList').empty();
+            roles.forEach((role, index) => {
+                $('#roleList').append(`
+                    <li class="collection-item">
+                        ${role['role-title']}
+                        <a href="#" class="secondary-content delete-role" data-index="${index}">
+                            <i class="material-icons">delete</i>
+                        </a>
+                        <a href="#" class="secondary-content edit-role" data-index="${index}">
+                            <i class="material-icons">edit</i>
+                        </a>
+                    </li>
+                `);
+            });
+        }
+
+        // Update Role Select Dropdown
+        function updateRoleSelect() {
+            $('#roleSelect').empty().append('<option value="" disabled selected>Select a role</option>');
+            roles.forEach(role => {
+                $('#roleSelect').append(`<option>${role['role-title']}</option>`);
+            });
+            $('select').formSelect();
+        }
+
+        // Update Task List UI
+        function updateTaskList(tasks) {
+            $('#taskList').empty();
+            tasks.forEach((task, index) => {
+                $('#taskList').append(`
+                    <li class="collection-item">
+                        <div>
+                            ${task['task-title']}
+                            <span class="task-overview">
+                                <span>Start: ${task['task-start-time']} | End: ${task['task-end-time']}</span>
+                                <span>Resources: ${task.resources.length}</span>
+                            </span>
+                        </div>
+                        <a href="#" class="secondary-content delete-task" data-index="${index}">
+                            <i class="material-icons">delete</i>
+                        </a>
+                        <a href="#" class="secondary-content edit-task" data-index="${index}">
+                            <i class="material-icons">edit</i>
+                        </a>
+                    </li>
+                `);
+            });
+        }
+    });
+</script>
+</body>
+</html>

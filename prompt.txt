@@ -1,0 +1,53 @@
+Create a single HTML file that implements an interactive timeline webpage using google timeline chart lib (https://developers.google.com/chart/interactive/docs/gallery/timeline). Users should be able to drag tasks and subtasks along the timeline, adjusting their planned start and end times without exceeding deadlines. The timeline should display only 5 days, with time represented in the format "D
+.M" (e.g., "0:5.5" indicates Day 0, 5:30 AM).
+
+Requirements:
+JSON Data Structure: Use the following structure for tasks:
+
+{
+    "tasks":[
+       {
+         "task-id":"1",
+         "task-title": "Title 1",
+         "task-description": "description 1",
+         "task-agreed": -1,
+         "task-resources":[
+           {
+             "resource-id":"1",
+             "resource-title":"resource title",
+             "resource-url":"https://domain.com/resourceurl"
+           }
+         ],
+         "task-showtime":"0:8.3",
+         "task-deadline":"4:5.2",
+         "task-planned-start":"0:1.5",
+         "task-planned-end":"3:7",
+         "task-status": "Waiting to start",
+         "subtasks":[
+           {
+             "subtask-id":"1",
+             "subtask-title":"Subtask 1",
+             "subtask-status":true,
+             "subtask-planned-start":"0:2",
+             "subtask-planned-end":"0:3"
+           }
+         ],
+         "task-submissions":[
+           {
+             "task-submission-id":"123",
+             "task-submission-title":"Update title",
+             "task-submission-description":"Update description",
+             "task-submission-files":[
+               {
+                 "file-id":"1",
+                 "file-name":"file1.txt",
+                 "file-url":"https://domain.com/file1"
+               }
+             ]
+           }
+         ]
+       }
+    ]
+}
+
+provide full html code in single file.
