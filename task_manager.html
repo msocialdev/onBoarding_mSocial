@@ -8,6 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome Icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
         body {
             background-color: #f8f9fa;
@@ -243,6 +244,14 @@ function renderTaskList() {
 
 // Open the task modal and display task details
 function openTaskModal(taskId) {
+
+    const modalElement = document.getElementById('taskModal');
+    const modal = new bootstrap.Modal(modalElement);
+
+    modal.hide();
+    $(document.body).removeClass("modal-open");
+    $(".modal-backdrop").remove();
+
     currentTaskId = taskId;
     var tasks = test_state.tasks;
     const task = tasks.find(t => t['task-id'] === taskId);
@@ -298,8 +307,7 @@ function openTaskModal(taskId) {
         submissionList.appendChild(submissionItem);
     });
 
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('taskModal'));
+
     modal.show();
 }
 
@@ -338,7 +346,7 @@ function addSubtask() {
         return;
     }
     fetch(`${API_URL}`, {
-        method: 'PUT',
+        method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
@@ -368,10 +376,38 @@ function addSubtask() {
 
 // Toggle subtask completion status
 function toggleSubtaskStatus(subtaskId) {
-    const task = tasks.find(t => t['task-id'] === currentTaskId);
-    const subtask = task.subtasks.find(st => st['subtask-id'] === subtaskId);
-    subtask['subtask-status'] = !subtask['subtask-status'];
-    openTaskModal(currentTaskId);
+    const task = test_state.tasks.find(t => t['task-id'] === currentTaskId);
+    const subtask = task ? task.subtasks.find(st => st['subtask-id'] === subtaskId) : undefined;
+
+    console.log(subtask);
+
+    fetch(`${API_URL}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            "action":"update-subtask",
+            "task-id":currentTaskId,
+            "email":email,
+            "subtask": {
+                "subtask-id":subtaskId,
+                "subtask-title":subtask["subtask-title"],
+                "subtask-status":!subtask["subtask-status"],
+                "subtask-planned-start":subtask["subtask-planned-start"],
+                "subtask-planned-end":subtask["subtask-planned-end"]
+            }
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        test_state = data;
+        openTaskModal(currentTaskId);
+    })
+    .catch(error => {
+        console.error('Error adding subtask:', error);
+    });
+
 }
 
 // Edit subtask title
