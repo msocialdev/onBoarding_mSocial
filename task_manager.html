@@ -305,25 +305,65 @@ function openTaskModal(taskId) {
 
 // Change task status
 function changeStatus() {
-    var tasks = test_state.tasks;
-    const task = tasks.find(t => t['task-id'] === currentTaskId);
-    task['task-status'] = document.getElementById('taskStatus').value;
-    renderTaskList();
+    fetch(`${API_URL}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            "action": "update-task-status",
+            "task-id": currentTaskId,
+            "email": email,
+            "task-status": document.getElementById('taskStatus').value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        test_state = data;
+        var tasks = test_state.tasks;
+        const task = tasks.find(t => t['task-id'] === currentTaskId);
+        task['task-status'] = document.getElementById('taskStatus').value;
+        renderTaskList();
+    })
+    .catch(error => {
+        console.error('Error updating task status:', error);
+    });
 }
+
 
 // Add new subtask
 function addSubtask() {
     const subtaskTitle = document.getElementById('newSubtaskTitle').value;
-    if (subtaskTitle) {
-        const task = tasks.find(t => t['task-id'] === currentTaskId);
-        task.subtasks.push({
-            "subtask-id": Math.random().toString(36).substr(2, 9),
-            "subtask-title": subtaskTitle,
-            "subtask-status": false
-        });
+    if (!subtaskTitle) {
+        return;
+    }
+    fetch(`${API_URL}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            "action":"add-subtask",
+            "task-id":currentTaskId,
+            "email":email,
+            "subtask": {
+                "subtask-id":generateUUID(),
+                "subtask-title":subtaskTitle,
+                "subtask-status":false,
+                "subtask-planned-start":test_state.tasks.find(t => t['task-id'] === currentTaskId)["task-start"],
+                "subtask-planned-end":test_state.tasks.find(t => t['task-id'] === currentTaskId)["task-deadline"]
+            }
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        test_state = data;
         openTaskModal(currentTaskId);
         document.getElementById('newSubtaskTitle').value = ''; // Clear input
-    }
+    })
+    .catch(error => {
+        console.error('Error adding subtask:', error);
+    });
 }
 
 // Toggle subtask completion status
