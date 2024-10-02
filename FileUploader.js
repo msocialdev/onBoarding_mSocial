@@ -41,6 +41,19 @@ document.addEventListener('DOMContentLoaded', function () {
         removeButton.textContent = 'Remove File';
         removeButton.style.display = 'none';  // Hide by default
 
+        // Create a URL display element
+        const urlDisplay = document.createElement('a');
+        urlDisplay.style.display = 'none';  // Hide by default
+        urlDisplay.target = '_blank';  // Open in new tab
+
+        // Check if there's already a URL in the hidden input
+        if (hiddenField.value) {
+            urlDisplay.href = hiddenField.value;
+            urlDisplay.textContent = 'Uploaded File';
+            urlDisplay.style.display = 'inline';  // Show the URL
+            removeButton.style.display = 'inline-block';  // Show the remove button
+        }
+
         // Event listener for file selection
         fileInput.addEventListener('change', async function (event) {
             const file = event.target.files[0];
@@ -50,7 +63,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 try {
                     const signedUrl = await getSignedUrl(file);
-                    uploadFile(file, signedUrl, hiddenField, progressBar, removeButton, fileInput);
+                    uploadFile(file, signedUrl, hiddenField, progressBar, removeButton, fileInput, urlDisplay);
                 } catch (error) {
                     console.error('Error generating signed URL:', error);
                 }
@@ -63,25 +76,27 @@ document.addEventListener('DOMContentLoaded', function () {
             if (fileUrl) {
                 try {
                     // Call the Lambda to delete the file
-                    await fetch(`${lambdaUrl}?url=${encodeURIComponent(fileUrl)}`, { method: 'GET' });
+                    await fetch(`${lambdaUrl}?url=${encodeURIComponent(fileUrl)}`, { method: 'DELETE' });
                     hiddenField.value = '';  // Clear the hidden field
                     fileInput.disabled = false;  // Enable file input
                     progressBar.style.display = 'none';  // Hide progress bar
                     removeButton.style.display = 'none';  // Hide remove button
+                    urlDisplay.style.display = 'none';  // Hide URL display
                 } catch (error) {
                     console.error('Error deleting file:', error);
                 }
             }
         });
 
-        // Insert the file input, progress bar, and remove button into the DOM
+        // Insert the file input, progress bar, remove button, and URL display into the DOM
         inputField.parentNode.insertBefore(fileInput, inputField.nextSibling);
         inputField.parentNode.insertBefore(progressBar, fileInput.nextSibling);
-        inputField.parentNode.insertBefore(removeButton, progressBar.nextSibling);
+        inputField.parentNode.insertBefore(urlDisplay, progressBar.nextSibling);
+        inputField.parentNode.insertBefore(removeButton, urlDisplay.nextSibling);
     }
 
     // Function to upload the file
-    function uploadFile(file, signedUrl, hiddenField, progressBar, removeButton, fileInput) {
+    function uploadFile(file, signedUrl, hiddenField, progressBar, removeButton, fileInput, urlDisplay) {
         const xhr = new XMLHttpRequest();
         xhr.open('PUT', signedUrl, true);
 
@@ -103,8 +118,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 const fileUrl = signedUrl.split('?')[0];  // Get the file URL without query params
                 hiddenField.value = fileUrl;
 
-                // Show the remove button and enable the file input
-                removeButton.style.display = 'inline-block';
+                // Show the URL and remove button
+                urlDisplay.href = fileUrl;
+                urlDisplay.textContent = 'Uploaded File';
+                urlDisplay.style.display = 'inline';  // Show the URL
+                removeButton.style.display = 'inline-block';  // Show the remove button
             } else {
                 console.error('File upload failed:', xhr.responseText);
                 fileInput.disabled = false;  // Re-enable the file input
