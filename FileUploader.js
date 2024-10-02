@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (fileUrl) {
                 try {
                     // Call the Lambda to delete the file
-                    await fetch(`${lambdaUrl}?url=${encodeURIComponent(fileUrl)}`, { method: 'DELETE' });
+                    await fetch(`${lambdaUrl}?url=${encodeURIComponent(fileUrl)}`, { method: 'GET' });
                     hiddenField.value = '';  // Clear the hidden field
                     fileInput.disabled = false;  // Enable file input
                     progressBar.style.display = 'none';  // Hide progress bar
