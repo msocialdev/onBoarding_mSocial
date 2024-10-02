@@ -45,9 +45,25 @@
         .task-overview span {
             display: block;
         }
+        #loadingOverlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 2em;
+        }
     </style>
 </head>
 <body>
+
+<div id="loadingOverlay">Loading...</div>
 
 <div id="sidebar">
     <h5>Menu</h5>
@@ -134,7 +150,9 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+<script src="FileUploader.js"></script>
 <script>
+    const API_URL = 'https://lfbuy6m7eeuooe5dpsya6xo64m0sicrs.lambda-url.ap-south-1.on.aws';
     let roles = [];
     let editingRoleIndex = null;
     let selectedRoleIndex = null;
@@ -148,6 +166,7 @@
         $('#showRoles').click(function() {
             $('#rolesSection').show();
             $('#roleDetailsSection').hide();
+            loadRoles(); // Fetch roles when roles section is displayed
         });
 
         // Show Role Details Section
@@ -171,26 +190,25 @@
         $('#roleForm').on('submit', function(e) {
             e.preventDefault();
             const roleData = {
+                'role-id': generateUUID(),
                 'role-title': $('#roleTitle').val(),
                 'role-status': $('#roleStatus').is(':checked'),
                 'tasks': []
             };
 
             if (editingRoleIndex !== null) {
-                roles[editingRoleIndex] = roleData;
+                roleData['role-id'] = roles[editingRoleIndex]['role-id'];
+                updateRole(roleData);
             } else {
-                roles.push(roleData);
+                addRole(roleData);
             }
-            updateRoleList();
-            $('#roleModal').modal('close');
         });
 
         // Delete Role
         $(document).on('click', '.delete-role', function() {
             const index = $(this).data('index');
-            roles.splice(index, 1);
-            updateRoleList();
-            updateRoleSelect();
+            const roleId = roles[index]['role-id'];
+            deleteRole(roleId);
         });
 
         // Edit Role
@@ -249,48 +267,52 @@
             };
 
             $('#resourceInputs .resource-field').each(function() {
-                const resourceTitle = $(this).find('.resource-title').val();
-                const resourceUrl = $(this).find('.resource-url').val();
+                const resourceTitle = $(this).find('input[name="resourceTitle"]').val();
+                const resourceUrl = $(this).find('input[name="resourceUrl"]').val();
                 taskData.resources.push({ title: resourceTitle, url: resourceUrl });
             });
 
             if (editingTaskIndex !== null) {
-                roles[selectedRoleIndex].tasks[editingTaskIndex] = taskData;
+                updateTask(selectedRoleIndex, editingTaskIndex, taskData);
             } else {
-                roles[selectedRoleIndex].tasks.push(taskData);
+                addTask(selectedRoleIndex, taskData);
             }
-
-            updateTaskList(roles[selectedRoleIndex].tasks);
-            $('#taskModal').modal('close');
         });
 
         // Delete Task
         $(document).on('click', '.delete-task', function() {
-            const index = $(this).data('index');
-            roles[selectedRoleIndex].tasks.splice(index, 1);
-            updateTaskList(roles[selectedRoleIndex].tasks);
+            const taskIndex = $(this).data('index');
+            deleteTask(selectedRoleIndex, taskIndex);
         });
 
-        // Add Resource Button
+        // Add Resource Field
         $('#addResourceBtn').click(function(e) {
             e.preventDefault();
             addResourceField();
         });
 
-        // Delete Resource Button
+        // Remove Resource Field
         $(document).on('click', '.delete-resource-btn', function() {
             $(this).closest('.resource-field').remove();
         });
 
-        // Helper Functions
+        // Utility Functions
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0,
+                    v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
         function addResourceField(title = '', url = '', index = null) {
-            const resourceHtml = `
+            const field = `
                 <div class="resource-field">
-                    <input type="text" class="resource-title" placeholder="Resource Title" value="${title}">
-                    <input type="text" class="resource-url" placeholder="Resource URL" value="${url}">
-                    <button class="delete-resource-btn btn-small">X</button>
+                    <input type="text" name="resourceTitle" placeholder="Resource Title" value="${title}">
+                    <input type="text" name="resourceUrl"  data-file-upload="true" placeholder="Resource URL" value="${url}">
+                    <button class="delete-resource-btn" data-index="${index}">X</button>
                 </div>`;
-            $('#resourceInputs').append(resourceHtml);
+            $('#resourceInputs').append(field);
         }
 
         function resetTaskModal() {
@@ -299,58 +321,166 @@
             $('#taskStartModal').val('');
             $('#taskEndModal').val('');
             $('#resourceInputs').empty();
+            M.updateTextFields();
         }
 
-        // Update Role List UI
+        // Load Roles
+        function loadRoles() {
+            showLoadingOverlay(true);
+            $.get(API_URL, function(data) {
+                roles = data.roles;
+                updateRoleList();
+                showLoadingOverlay(false);
+            });
+        }
+
+        // Update Role List in the UI
         function updateRoleList() {
-            $('#roleList').empty();
+            const roleList = $('#roleList').empty();
             roles.forEach((role, index) => {
-                $('#roleList').append(`
+                roleList.append(`
                     <li class="collection-item">
-                        ${role['role-title']}
-                        <a href="#" class="secondary-content delete-role" data-index="${index}">
-                            <i class="material-icons">delete</i>
-                        </a>
-                        <a href="#" class="secondary-content edit-role" data-index="${index}">
-                            <i class="material-icons">edit</i>
-                        </a>
+                        <span>${role['role-title']}</span>
+                        <button class="btn edit-role" data-index="${index}">Edit</button>
+                        <button class="btn delete-role" data-index="${index}">Delete</button>
                     </li>
                 `);
             });
         }
+        
+        function addRole(roleData) {
+            showLoadingOverlay(true);
+            $.ajax({
+                url: API_URL, // Your API endpoint
+                type: 'POST',
+                data: JSON.stringify(roleData), // Send the roleData as a stringified JSON
+                contentType: 'application/json', // Specify that the content type is JSON
+                success: function() {
+                    loadRoles(); // Reload roles after successful POST
+                    $('#roleModal').modal('close'); // Close the modal
+                    showLoadingOverlay(false); // Hide the loading overlay
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error('Failed to add role:', textStatus, errorThrown); // Log any error
+                    showLoadingOverlay(false); // Hide the loading overlay
+                }
+            });
+        }
+
+
+        // Update Role
+        function updateRole(roleData) {
+            showLoadingOverlay(true);
+            $.ajax({
+                url: API_URL,
+                type: 'PUT',
+                data: JSON.stringify(roleData), // Send the roleData as a stringified JSON
+                contentType: 'application/json', // Specify that the content type is JSON
+                success: function() {
+                    loadRoles();
+                    $('#roleModal').modal('close');
+                }
+            });
+        }
+
+
+        function deleteRole(roleId) {
+            showLoadingOverlay(true);
+
+            $.ajax({
+                url: API_URL + '?role-id=' + encodeURIComponent(roleId), // Use encodeURIComponent for URL safety
+                type: 'DELETE',
+                dataType: 'text', // Expect plain text response
+                success: function(response, textStatus, xhr) {
+                    // Since the response is plain text, no need to parse it
+                    if (xhr.status === 200) {
+                        console.log("Delete role success:", response); // Should log "success"
+                        loadRoles(); // Reload the roles after successful delete
+                    } else {
+                        console.error("Unexpected response status:", xhr.status, response);
+                    }
+                    showLoadingOverlay(false); // Hide loading overlay after the request
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error("Error deleting role:", textStatus, errorThrown);
+                    showLoadingOverlay(false); // Ensure the overlay is hidden in case of error
+                }
+            });
+        }
+
+
+
+
 
         // Update Role Select Dropdown
         function updateRoleSelect() {
-            $('#roleSelect').empty().append('<option value="" disabled selected>Select a role</option>');
-            roles.forEach(role => {
-                $('#roleSelect').append(`<option>${role['role-title']}</option>`);
+            const roleSelect = $('#roleSelect').empty();
+            roleSelect.append('<option value="" disabled selected>Select a role</option>');
+            roles.forEach((role, index) => {
+                roleSelect.append(`<option value="${index}">${role['role-title']}</option>`);
             });
             $('select').formSelect();
         }
 
-        // Update Task List UI
+        // Update Task List in the UI
         function updateTaskList(tasks) {
-            $('#taskList').empty();
+            const taskList = $('#taskList').empty();
             tasks.forEach((task, index) => {
-                $('#taskList').append(`
+                taskList.append(`
                     <li class="collection-item">
-                        <div>
-                            ${task['task-title']}
-                            <span class="task-overview">
-                                <span>Start: ${task['task-start-time']} | End: ${task['task-end-time']}</span>
-                                <span>Resources: ${task.resources.length}</span>
-                            </span>
-                        </div>
-                        <a href="#" class="secondary-content delete-task" data-index="${index}">
-                            <i class="material-icons">delete</i>
-                        </a>
-                        <a href="#" class="secondary-content edit-task" data-index="${index}">
-                            <i class="material-icons">edit</i>
-                        </a>
+                        <span>${task['task-title']}</span>
+                        <button class="btn edit-task" data-index="${index}">Edit</button>
+                        <button class="btn delete-task" data-index="${index}">Delete</button>
                     </li>
                 `);
             });
         }
+
+        // Add Task
+        function addTask(roleIndex, taskData) {
+            roles[roleIndex].tasks.push(taskData);
+            saveRoleTasks(roleIndex);
+        }
+
+        // Update Task
+        function updateTask(roleIndex, taskIndex, taskData) {
+            roles[roleIndex].tasks[taskIndex] = taskData;
+            saveRoleTasks(roleIndex);
+        }
+
+        // Delete Task
+        function deleteTask(roleIndex, taskIndex) {
+            roles[roleIndex].tasks.splice(taskIndex, 1);
+            saveRoleTasks(roleIndex);
+        }
+
+        // Save Role's Tasks
+        function saveRoleTasks(roleIndex) {
+            const roleData = roles[roleIndex];
+            showLoadingOverlay(true);
+            $.ajax({
+                url: API_URL,
+                type: 'PUT',
+                data: JSON.stringify(roleData), // Send the roleData as a stringified JSON
+                contentType: 'application/json', // Specify that the content type is JSON
+                success: function() {
+                    updateTaskList(roleData.tasks);
+                    $('#taskModal').modal('close');
+                    showLoadingOverlay(false);
+                }
+            });
+        }
+
+        // Show/Hide Loading Overlay
+        function showLoadingOverlay(show) {
+            if (show) {
+                $('#loadingOverlay').fadeIn();
+            } else {
+                $('#loadingOverlay').fadeOut();
+            }
+        }
+
+        loadRoles();
     });
 </script>
 </body>
