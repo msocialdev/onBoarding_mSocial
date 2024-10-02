@@ -24,6 +24,11 @@ document.addEventListener('DOMContentLoaded', function () {
         // Hide the original input field and create a hidden input
         inputField.type = 'hidden';
         const hiddenField = inputField;
+        
+        const fileURL_display = document.createElement('div');
+        fileURL_display.innerText = inputField.value;
+        
+
 
         // Create a new file input
         const fileInput = document.createElement('input');
@@ -41,19 +46,6 @@ document.addEventListener('DOMContentLoaded', function () {
         removeButton.textContent = 'Remove File';
         removeButton.style.display = 'none';  // Hide by default
 
-        // Create a URL display element
-        const urlDisplay = document.createElement('a');
-        urlDisplay.style.display = 'none';  // Hide by default
-        urlDisplay.target = '_blank';  // Open in new tab
-
-        // Check if there's already a URL in the hidden input
-        if (hiddenField.value) {
-            urlDisplay.href = hiddenField.value;
-            urlDisplay.textContent = 'Uploaded File';
-            urlDisplay.style.display = 'inline';  // Show the URL
-            removeButton.style.display = 'inline-block';  // Show the remove button
-        }
-
         // Event listener for file selection
         fileInput.addEventListener('change', async function (event) {
             const file = event.target.files[0];
@@ -63,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 try {
                     const signedUrl = await getSignedUrl(file);
-                    uploadFile(file, signedUrl, hiddenField, progressBar, removeButton, fileInput, urlDisplay);
+                    uploadFile(file, signedUrl, hiddenField, progressBar, removeButton, fileInput);
                 } catch (error) {
                     console.error('Error generating signed URL:', error);
                 }
@@ -76,27 +68,43 @@ document.addEventListener('DOMContentLoaded', function () {
             if (fileUrl) {
                 try {
                     // Call the Lambda to delete the file
-                    await fetch(`${lambdaUrl}?url=${encodeURIComponent(fileUrl)}`, { method: 'DELETE' });
+                    await fetch(`${lambdaUrl}?url=${encodeURIComponent(fileUrl)}`, { method: 'GET' });
                     hiddenField.value = '';  // Clear the hidden field
                     fileInput.disabled = false;  // Enable file input
+                    fileInput.style.display = 'inline-block'; 
+                    fileURL_display.style.display = 'none'; 
                     progressBar.style.display = 'none';  // Hide progress bar
                     removeButton.style.display = 'none';  // Hide remove button
-                    urlDisplay.style.display = 'none';  // Hide URL display
                 } catch (error) {
                     console.error('Error deleting file:', error);
                 }
             }
         });
 
-        // Insert the file input, progress bar, remove button, and URL display into the DOM
+        // Insert the file input, progress bar, and remove button into the DOM
         inputField.parentNode.insertBefore(fileInput, inputField.nextSibling);
         inputField.parentNode.insertBefore(progressBar, fileInput.nextSibling);
-        inputField.parentNode.insertBefore(urlDisplay, progressBar.nextSibling);
-        inputField.parentNode.insertBefore(removeButton, urlDisplay.nextSibling);
+        inputField.parentNode.insertBefore(fileURL_display, progressBar.nextSibling);
+        inputField.parentNode.insertBefore(removeButton, fileURL_display.nextSibling);
+        
+        if (inputField.value)
+        {
+            fileInput.style.display = 'none'; 
+            progressBar.style.display = 'none';
+            fileURL_display.style.display = 'inline-block'; 
+            removeButton.style.display = 'inline-block';
+        }
+        else
+        {
+            fileInput.style.display = 'inline-block'; 
+            progressBar.style.display = 'none';
+            fileURL_display.style.display = 'none'; 
+            removeButton.style.display = 'inline-block';
+        }
     }
 
     // Function to upload the file
-    function uploadFile(file, signedUrl, hiddenField, progressBar, removeButton, fileInput, urlDisplay) {
+    function uploadFile(file, signedUrl, hiddenField, progressBar, removeButton, fileInput) {
         const xhr = new XMLHttpRequest();
         xhr.open('PUT', signedUrl, true);
 
@@ -118,11 +126,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 const fileUrl = signedUrl.split('?')[0];  // Get the file URL without query params
                 hiddenField.value = fileUrl;
 
-                // Show the URL and remove button
-                urlDisplay.href = fileUrl;
-                urlDisplay.textContent = 'Uploaded File';
-                urlDisplay.style.display = 'inline';  // Show the URL
-                removeButton.style.display = 'inline-block';  // Show the remove button
+                // Show the remove button and enable the file input
+                removeButton.style.display = 'inline-block';
             } else {
                 console.error('File upload failed:', xhr.responseText);
                 fileInput.disabled = false;  // Re-enable the file input
