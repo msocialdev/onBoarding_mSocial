@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function () {
             fileInput.style.display = 'inline-block'; 
             progressBar.style.display = 'none';
             fileURL_display.style.display = 'none'; 
-            removeButton.style.display = 'inline-block';
+            removeButton.style.display = 'none';
         }
     }
 
