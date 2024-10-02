@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 try {
                     const signedUrl = await getSignedUrl(file);
-                    uploadFile(file, signedUrl, hiddenField, progressBar, removeButton, fileInput);
+                    uploadFile(file, signedUrl, hiddenField, progressBar, removeButton, fileInput,fileURL_display);
                 } catch (error) {
                     console.error('Error generating signed URL:', error);
                 }
@@ -72,6 +72,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     await fetch(`${lambdaUrl}?url=${encodeURIComponent(fileUrl)}`, { method: 'GET' });
                     hiddenField.value = '';  // Clear the hidden field
                     fileInput.disabled = false;  // Enable file input
+                    fileInput.value = "";
                     fileInput.style.display = 'inline-block'; 
                     fileURL_display.style.display = 'none'; 
                     progressBar.style.display = 'none';  // Hide progress bar
@@ -105,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Function to upload the file
-    function uploadFile(file, signedUrl, hiddenField, progressBar, removeButton, fileInput) {
+    function uploadFile(file, signedUrl, hiddenField, progressBar, removeButton, fileInput,fileURL_display) {
         const xhr = new XMLHttpRequest();
         xhr.open('PUT', signedUrl, true);
 
@@ -128,7 +129,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 hiddenField.value = fileUrl;
 
                 // Show the remove button and enable the file input
+                fileInput.style.display = 'none'; 
+                progressBar.style.display = 'none';
                 removeButton.style.display = 'inline-block';
+                fileURL_display.innerText = fileUrl;
+                fileURL_display.style.display = 'inline-block';
             } else {
                 console.error('File upload failed:', xhr.responseText);
                 fileInput.disabled = false;  // Re-enable the file input
