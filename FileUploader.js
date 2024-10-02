@@ -63,7 +63,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         // Event listener for removing the uploaded file
-        removeButton.addEventListener('click', async function () {
+        removeButton.addEventListener('click', async function (event) {
+            event.preventDefault();  // Prevent default button action
             const fileUrl = hiddenField.value;
             if (fileUrl) {
                 try {
