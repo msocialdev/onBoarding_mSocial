@@ -24,89 +24,86 @@ document.addEventListener('DOMContentLoaded', function () {
         // Hide the original input field and create a hidden input
         inputField.type = 'hidden';
         const hiddenField = inputField;
-        
+
         const fileURL_display = document.createElement('div');
         fileURL_display.innerText = inputField.value;
-        
 
-
-        // Create a new file input
+        // Create a new file input for multiple file uploads
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.accept = '*';  // Accept any file type (you can adjust this)
+        fileInput.multiple = true;  // Allow multiple file uploads
 
-        // Create a progress bar
-        const progressBar = document.createElement('progress');
-        progressBar.max = 100;
-        progressBar.value = 0;
-        progressBar.style.display = 'none';  // Hide by default
-
-        // Create a remove file button
-        const removeButton = document.createElement('button');
-        removeButton.textContent = 'Remove File';
-        removeButton.style.display = 'none';  // Hide by default
+        // Container for uploaded file items
+        const fileListContainer = document.createElement('div');
 
         // Event listener for file selection
         fileInput.addEventListener('change', async function (event) {
-            const file = event.target.files[0];
-            if (file) {
-                // Disable file input to prevent changes during upload
-                fileInput.disabled = true;
-
+            const files = Array.from(event.target.files);
+            for (const file of files) {
                 try {
                     const signedUrl = await getSignedUrl(file);
-                    uploadFile(file, signedUrl, hiddenField, progressBar, removeButton, fileInput,fileURL_display);
+                    const fileItem = createFileItem(file, signedUrl, hiddenField, fileInput, fileURL_display, fileListContainer);
+                    fileListContainer.appendChild(fileItem);
                 } catch (error) {
                     console.error('Error generating signed URL:', error);
                 }
             }
+            fileInput.value = '';  // Reset the file input after upload
         });
 
-        // Event listener for removing the uploaded file
+        // Insert the file input and file list container into the DOM
+        inputField.parentNode.insertBefore(fileInput, inputField.nextSibling);
+        inputField.parentNode.insertBefore(fileListContainer, fileInput.nextSibling);
+    }
+
+    // Function to create a UI element for each uploaded file
+    function createFileItem(file, signedUrl, hiddenField, fileInput, fileURL_display, fileListContainer) {
+        const fileItem = document.createElement('div');
+        const progressBar = document.createElement('progress');
+        progressBar.max = 100;
+        progressBar.value = 0;
+        progressBar.style.display = 'none';
+
+        const removeButton = document.createElement('button');
+        removeButton.textContent = 'Remove File';
+        removeButton.style.display = 'none';
+
+        // Remove re-declaration of fileURL_display here
+
+        // Upload the file
+        uploadFile(file, signedUrl, hiddenField, progressBar, removeButton, fileInput, fileURL_display);
+
+        // Event listener to remove the file
         removeButton.addEventListener('click', async function (event) {
-            event.preventDefault();  // Prevent default button action
-            const fileUrl = hiddenField.value;
-            if (fileUrl) {
-                try {
-                    // Call the Lambda to delete the file
-                    await fetch(`${lambdaUrl}?url=${encodeURIComponent(fileUrl)}`, { method: 'GET' });
-                    hiddenField.value = '';  // Clear the hidden field
-                    fileInput.disabled = false;  // Enable file input
-                    fileInput.value = "";
-                    fileInput.style.display = 'inline-block'; 
-                    fileURL_display.style.display = 'none'; 
-                    progressBar.style.display = 'none';  // Hide progress bar
-                    removeButton.style.display = 'none';  // Hide remove button
-                } catch (error) {
-                    console.error('Error deleting file:', error);
-                }
+            event.preventDefault();
+            const fileUrl = signedUrl.split('?')[0];  // Get the file URL without query params
+            try {
+                // Call the Lambda to delete the file
+                await fetch(`${lambdaUrl}?url=${encodeURIComponent(fileUrl)}`, { method: 'GET' });
+
+                // Remove the file URL from the hidden field
+                const urlArray = hiddenField.value.split(',').filter(url => url !== fileUrl);
+                hiddenField.value = urlArray.join(',');
+
+                // Remove the file item from the DOM
+                fileListContainer.removeChild(fileItem);
+            } catch (error) {
+                console.error('Error deleting file:', error);
             }
         });
 
-        // Insert the file input, progress bar, and remove button into the DOM
-        inputField.parentNode.insertBefore(fileInput, inputField.nextSibling);
-        inputField.parentNode.insertBefore(progressBar, fileInput.nextSibling);
-        inputField.parentNode.insertBefore(fileURL_display, progressBar.nextSibling);
-        inputField.parentNode.insertBefore(removeButton, fileURL_display.nextSibling);
-        
-        if (inputField.value)
-        {
-            fileInput.style.display = 'none'; 
-            progressBar.style.display = 'none';
-            fileURL_display.style.display = 'inline-block'; 
-            removeButton.style.display = 'inline-block';
-        }
-        else
-        {
-            fileInput.style.display = 'inline-block'; 
-            progressBar.style.display = 'none';
-            fileURL_display.style.display = 'none'; 
-            removeButton.style.display = 'none';
-        }
+        // Append UI elements
+        fileItem.appendChild(fileURL_display);
+        fileItem.appendChild(progressBar);
+        fileItem.appendChild(removeButton);
+
+        return fileItem;
     }
 
+
     // Function to upload the file
-    function uploadFile(file, signedUrl, hiddenField, progressBar, removeButton, fileInput,fileURL_display) {
+    function uploadFile(file, signedUrl, hiddenField, progressBar, removeButton, fileInput, fileURL_display) {
         const xhr = new XMLHttpRequest();
         xhr.open('PUT', signedUrl, true);
 
@@ -124,16 +121,16 @@ document.addEventListener('DOMContentLoaded', function () {
         // On upload complete
         xhr.onload = function () {
             if (xhr.status === 200) {
-                // Set the final URL in the hidden input field
                 const fileUrl = signedUrl.split('?')[0];  // Get the file URL without query params
-                hiddenField.value = fileUrl;
-
-                // Show the remove button and enable the file input
-                fileInput.style.display = 'none'; 
-                progressBar.style.display = 'none';
-                removeButton.style.display = 'inline-block';
                 fileURL_display.innerText = fileUrl;
                 fileURL_display.style.display = 'inline-block';
+                progressBar.style.display = 'none';
+                removeButton.style.display = 'inline-block';
+
+                // Append the new URL to the hidden field as a comma-separated string
+                const currentUrls = hiddenField.value ? hiddenField.value.split(',') : [];
+                currentUrls.push(fileUrl);
+                hiddenField.value = currentUrls.join(',');
             } else {
                 console.error('File upload failed:', xhr.responseText);
                 fileInput.disabled = false;  // Re-enable the file input
