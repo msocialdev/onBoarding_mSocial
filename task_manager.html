@@ -526,7 +526,7 @@ function addSubmission() {
             document.getElementById('newSubmissionDescription').value = '';
             
             // Remove all file-url-input fields (assuming this is desired after submission)
-            document.querySelectorAll('.file-url-input').forEach(input => input.remove());
+            submissionFilesInput.value = "";
         })
         .catch(error => {
             console.error('Error adding submission:', error);
@@ -552,7 +552,7 @@ function editSubmission(submissionId) {
         const fileUrl = input.value;
         if (fileUrl) {
             submissionFiles.push({
-                "file-id": generateUUID(),
+                "file-id": fileUrl,
                 "file-name": getFileNameFromUrl(fileUrl), // Assume a helper function to extract file name
                 "file-url": fileUrl
             });
