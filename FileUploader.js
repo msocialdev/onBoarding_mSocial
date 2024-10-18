@@ -35,6 +35,11 @@ document.addEventListener('DOMContentLoaded', function () {
         fileInput.type = 'file';
         fileInput.accept = '*';  // Accept any file type (you can adjust this)
 
+        const uploadBtn = document.createElement('button');
+        const uploadIcon = document.createElement('i');
+        uploadIcon.classList.add("fas");
+        uploadIcon.classList.add("fa-upload");
+
         // Create a progress bar
         const progressBar = document.createElement('progress');
         progressBar.max = 100;
