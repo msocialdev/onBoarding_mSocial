@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/uuid/8.3.2/uuid.min.js"></script>
     <title>Role Management System</title>
     <style>
         body {
@@ -11,14 +12,9 @@
             height: 100vh;
             overflow: hidden;
         }
-        #sidebar {
-            width: 250px;
-            background: #f5f5f5;
-            padding: 20px;
-        }
         #content {
             flex: 1;
-            padding: 20px;
+            padding: 40px;
             overflow-y: auto;
         }
         .resource-field {
@@ -59,40 +55,100 @@
             color: white;
             font-size: 2em;
         }
+        .simple_btn
+        {
+            background-color: white;
+            box-shadow: 0px 0px 5px #ddd;
+            border:1px solid #ddd;
+            border-radius: 5px;
+            padding:10px;
+            padding-left:20px;
+            padding-right:20px;
+            font-weight: 800;
+            font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+            text-transform:uppercase;
+            font-size: 15px;
+            cursor: pointer;
+            margin-left:5px;
+            color:#666;
+        }
+        .simple_btn:hover
+        {
+            background-color: rgb(0, 89, 255);
+            color: white;
+        }
+        .role-item, .task-item
+        {
+            position: relative;
+            height:60px;
+            margin-bottom:10px;
+            width:100%;
+            text-align: left;
+            vertical-align:middle;
+            padding:15px;
+            font-size: 18px;
+            font-weight: 900;
+            border:1px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+            text-transform: uppercase;
+            color:#3a3a3a;
+            cursor: pointer;
+        }
+        .role-item:hover, .task-item:hover
+        {
+            border:1px solid #1f1f1f;
+            box-sizing: border-box;
+        }
+        .modal
+        {
+            border-radius: 10px !important;
+        }
+        .status
+        {
+            position: absolute;
+            font-size: 11px;
+            background-color: rgb(255, 255, 255);
+            color: rgb(105, 105, 105);
+            border-radius: 10px;
+            padding:5px;
+            padding-left:10px;
+            padding-right:10px;
+            /* left:15px;
+            top:-15px; */
+            margin-left: 10px;
+            box-sizing: border-box;
+        } 
+        .true
+        {
+            background-color: rgba(127, 146, 255, 0.301);
+        }
+        .false
+        {
+            background-color: rgba(255, 127, 127, 0.301);
+        }
     </style>
 </head>
 <body>
 
 <div id="loadingOverlay">Loading...</div>
 
-<div id="sidebar">
-    <h5>Menu</h5>
-    <ul>
-        <li><a href="#" id="showRoles">Roles</a></li>
-        <li><a href="#" id="showRoleDetails">Role Details</a></li>
-    </ul>
-</div>
-
 <div id="content">
     <div id="rolesSection" class="form-section">
-        <h5>Roles Management</h5>
-        <button id="addRoleBtn" class="btn">Add Role</button>
-        <h5>Existing Roles</h5>
-        <ul id="roleList" class="collection"></ul>
+        <div style="display:inline-block; width:100%;">
+            <h3 style="float:left;">Roles</h3>
+            <button style="float:right; margin-top:37px;" id="addRoleBtn" class="simple_btn">+ Add Role</button>
+        </div>
+        <ul id="roleList" class=""></ul>
     </div>
 
     <div id="roleDetailsSection" class="form-section" style="display:none;">
-        <h5>Role Details Management</h5>
-        <div class="input-field">
-            <select id="roleSelect">
-                <option value="" disabled selected>Select a role</option>
-            </select>
-            <label>Choose Role</label>
+        <button id="backBtn" class="simple_btn"> < All Roles</button>
+        <div style="display:inline-block; width:100%;">
+            <h3 id="roleNameHeader" style="float:left;">Role Name</h3>
+            <button style="float:right; margin-top:37px;" id="addTaskBtn" class="simple_btn">+ Add Task</button>
         </div>
-        <button id="addTaskBtn" class="btn" style="display:none;">Add Task</button>
-
-        <h5>Tasks</h5>
-        <ul id="taskList" class="collection"></ul>
+        <ul id="taskList" class=""></ul>
     </div>
 </div>
 
@@ -112,7 +168,7 @@
                 </label>
             </div>
             <div class="modal-footer">
-                <button type="submit" class="btn">Save Role</button>
+                <button type="submit" class="simple_btn" style="background-color: rgb(7, 91, 247); color: white;">Save Role</button>
             </div>
         </form>
     </div>
@@ -128,22 +184,30 @@
                 <label for="taskTitleModal">Task Title</label>
             </div>
             <div class="input-field">
+                <input type="text" id="taskPointsModal" required>
+                <label for="taskPointsModal">Task Points</label>
+            </div>
+            <div class="input-field">
                 <textarea id="taskDescriptionModal" class="materialize-textarea" required></textarea>
                 <label for="taskDescriptionModal">Task Description</label>
             </div>
-            <div class="input-field">
-                <input type="text" id="taskStartModal" required>
-                <label for="taskStartModal">Task Start Time</label>
-            </div>
-            <div class="input-field">
-                <input type="text" id="taskEndModal" required>
-                <label for="taskEndModal">Task End Time</label>
+            <div style="display: flex; justify-content: space-between; gap: 10px;">
+                <div class="input-field" style="width:50%;">
+                    <input type="text" id="taskStartModal" required>
+                    <label for="taskStartModal">Start Time (ex: "0:10" = 1st Day at 10 AM)</label>
+                </div>
+                <div class="input-field"  style="width:50%;">
+                    <input type="text" id="taskEndModal" required>
+                    <label for="taskEndModal">End Time (ex: "4:18" = 5th Day at 6 PM)</label>
+                </div>
             </div>
             <div class="input-field">
                 <div id="resourceInputs"></div>
-                <button id="addResourceBtn" class="btn">Add Resource</button>
+                <button id="addResourceBtn" class="simple_btn">+ Add Resource</button>
             </div>
-            <button type="submit" class="btn">Save Task</button>
+            <center>
+            <button type="submit" class="simple_btn" style="background-color: rgb(0, 89, 255); color: white; font-size: 18px; margin-top:20px;">Save Task</button>
+        </center>
         </form>
     </div>
 </div>
@@ -162,19 +226,44 @@
         $('.modal').modal();
         $('select').formSelect();
 
-        // Show Roles Section
-        $('#showRoles').click(function() {
+        // Get the current URL
+        let currentUrl = new URL(window.location.href);
+
+        // Get the query parameters
+        let queryParams = new URLSearchParams(currentUrl.search);
+
+        // Retrieve the value of the query parameter
+        let roleid_paramValue = queryParams.get('roleid');
+
+        // Check if the parameter exists
+        if (roleid_paramValue) {
+            $('#rolesSection').hide();
+            $('#roleDetailsSection').show();
+            showLoadingOverlay(true);
+            $.get(API_URL, function(data) {
+                roles = data.roles;
+                
+                console.log(roles);
+                roles.forEach((role, index) => {
+                    if(role["role-id"] == roleid_paramValue)
+                    {
+                        console.log(role);
+                        $('#roleNameHeader').text(role["role-title"] + " - Tasks");
+                        selectedRoleIndex = index;
+                        updateTaskList(role.tasks);
+                        $('#addTaskBtn').show();
+                    }
+                });
+
+                showLoadingOverlay(false);
+            });
+           
+           
+        } else {
             $('#rolesSection').show();
             $('#roleDetailsSection').hide();
             loadRoles(); // Fetch roles when roles section is displayed
-        });
-
-        // Show Role Details Section
-        $('#showRoleDetails').click(function() {
-            $('#rolesSection').hide();
-            $('#roleDetailsSection').show();
-            updateRoleSelect();
-        });
+        }
 
         // Open Add Role Modal
         $('#addRoleBtn').click(function() {
@@ -205,14 +294,30 @@
         });
 
         // Delete Role
-        $(document).on('click', '.delete-role', function() {
+        $(document).on('click', '.delete-role', function(event) {
+            event.stopPropagation();
             const index = $(this).data('index');
             const roleId = roles[index]['role-id'];
             deleteRole(roleId);
         });
 
+         // Open Role
+         $(document).on('click', '.role-item', function() {
+            const index = $(this).data('index');
+            const roleId = roles[index]['role-id'];
+            // Get the current URL
+            let currentUrl = new URL(window.location.href);
+
+            // Add or update the query parameter
+            currentUrl.searchParams.set('roleid', roleId);
+
+            // Redirect to the updated URL
+            window.location.href = currentUrl.toString();
+        });
+
         // Edit Role
-        $(document).on('click', '.edit-role', function() {
+        $(document).on('click', '.edit-role', function(event) {
+            event.stopPropagation();
             editingRoleIndex = $(this).data('index');
             const role = roles[editingRoleIndex];
             $('#roleTitle').val(role['role-title']);
@@ -222,12 +327,16 @@
             $('#roleModal').modal('open');
         });
 
-        // Show Task Form when Role is selected
-        $('#roleSelect').change(function() {
-            selectedRoleIndex = $('#roleSelect option:selected').index() - 1;
-            const selectedRole = roles[selectedRoleIndex];
-            updateTaskList(selectedRole.tasks);
-            $('#addTaskBtn').show();
+        // Go back to all roles page
+        $('#backBtn').click(function() {
+            // Get the current URL
+            let currentUrl = new URL(window.location.href);
+
+            // Add or update the query parameter
+            currentUrl.searchParams.set('roleid', "");
+
+            // Redirect to the updated URL
+            window.location.href = currentUrl.toString();
         });
 
         // Open Add Task Modal
@@ -239,11 +348,13 @@
         });
 
         // Edit Task
-        $(document).on('click', '.edit-task', function() {
+        $(document).on('click', '.edit-task', function(event) {
+            event.stopPropagation();
             editingTaskIndex = $(this).data('index');
             const task = roles[selectedRoleIndex].tasks[editingTaskIndex];
             $('#taskTitleModal').val(task['task-title']);
             $('#taskDescriptionModal').val(task['task-description']);
+            $('#taskPointsModal').val(task['task-points']);
             $('#taskStartModal').val(task['task-start-time']);
             $('#taskEndModal').val(task['task-end-time']);
             $('#resourceInputs').empty();
@@ -261,6 +372,7 @@
             const taskData = {
                 'task-title': $('#taskTitleModal').val(),
                 'task-description': $('#taskDescriptionModal').val(),
+                'task-points':$('#taskPointsModal').val(),
                 'task-start-time': $('#taskStartModal').val(),
                 'task-end-time': $('#taskEndModal').val(),
                 'resources': []
@@ -273,16 +385,22 @@
             });
 
             if (editingTaskIndex !== null) {
+                taskData['task-id'] = roles[selectedRoleIndex].tasks[editingTaskIndex]["task-id"];
                 updateTask(selectedRoleIndex, editingTaskIndex, taskData);
             } else {
+                taskData['task-id'] = generateUUID();
                 addTask(selectedRoleIndex, taskData);
             }
         });
 
         // Delete Task
-        $(document).on('click', '.delete-task', function() {
-            const taskIndex = $(this).data('index');
-            deleteTask(selectedRoleIndex, taskIndex);
+        $(document).on('click', '.delete-task', function(event) {
+            event.stopPropagation();
+            if(confirm("Are you sure you wanna delete the task?"))
+            {
+                const taskIndex = $(this).data('index');
+                deleteTask(selectedRoleIndex, taskIndex);
+            }
         });
 
         // Add Resource Field
@@ -296,14 +414,16 @@
             $(this).closest('.resource-field').remove();
         });
 
-        // Utility Functions
+        // Utility function to generate time-based UUID-like identifier
         function generateUUID() {
+            const timestamp = Date.now().toString(16); // Get current timestamp in hexadecimal
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                const r = Math.random() * 16 | 0,
-                    v = c === 'x' ? r : (r & 0x3 | 0x8);
+                const r = (Math.random() * 16) | 0;  // Random number between 0 and 15
+                const v = c === 'x' ? r : (r & 0x3 | 0x8); // Random value based on UUID spec
                 return v.toString(16);
-            });
+            }).replace(/^.{8}/, timestamp); // Replace the first part with the timestamp
         }
+
 
         function addResourceField(title = '', url = '', index = null) {
             const field = `
@@ -339,10 +459,11 @@
             const roleList = $('#roleList').empty();
             roles.forEach((role, index) => {
                 roleList.append(`
-                    <li class="collection-item">
+                    <li class="role-item ${role['role-status']}"  data-index="${index}" >
                         <span>${role['role-title']}</span>
-                        <button class="btn edit-role" data-index="${index}">Edit</button>
-                        <button class="btn delete-role" data-index="${index}">Delete</button>
+                        <span class="status">${role['role-status']?"Active":"In-active"}</span>
+                        <button class="simple_btn delete-role" data-index="${index}" style="float:right;  margin-top:-5px;">Delete</button>
+                        <button class="simple_btn edit-role" data-index="${index}" style="float:right; margin-top:-5px;">Edit</button>
                     </li>
                 `);
             });
@@ -385,41 +506,33 @@
 
 
         function deleteRole(roleId) {
-            showLoadingOverlay(true);
-
-            $.ajax({
-                url: API_URL + '?role-id=' + encodeURIComponent(roleId), // Use encodeURIComponent for URL safety
-                type: 'DELETE',
-                dataType: 'text', // Expect plain text response
-                success: function(response, textStatus, xhr) {
-                    // Since the response is plain text, no need to parse it
-                    if (xhr.status === 200) {
-                        console.log("Delete role success:", response); // Should log "success"
-                        loadRoles(); // Reload the roles after successful delete
-                    } else {
-                        console.error("Unexpected response status:", xhr.status, response);
+            if(confirm("Are you sure you wanna delete the role?"))
+            {
+                showLoadingOverlay(true);
+                $.ajax({
+                    url: API_URL + '?role-id=' + encodeURIComponent(roleId), // Use encodeURIComponent for URL safety
+                    type: 'DELETE',
+                    dataType: 'text', // Expect plain text response
+                    success: function(response, textStatus, xhr) {
+                        // Since the response is plain text, no need to parse it
+                        if (xhr.status === 200) {
+                            console.log("Delete role success:", response); // Should log "success"
+                            loadRoles(); // Reload the roles after successful delete
+                        } else {
+                            console.error("Unexpected response status:", xhr.status, response);
+                        }
+                        showLoadingOverlay(false); // Hide loading overlay after the request
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        console.error("Error deleting role:", textStatus, errorThrown);
+                        showLoadingOverlay(false); // Ensure the overlay is hidden in case of error
                     }
-                    showLoadingOverlay(false); // Hide loading overlay after the request
-                },
-                error: function(jqXHR, textStatus, errorThrown) {
-                    console.error("Error deleting role:", textStatus, errorThrown);
-                    showLoadingOverlay(false); // Ensure the overlay is hidden in case of error
-                }
-            });
-        }
-
-
-
-
-
-        // Update Role Select Dropdown
-        function updateRoleSelect() {
-            const roleSelect = $('#roleSelect').empty();
-            roleSelect.append('<option value="" disabled selected>Select a role</option>');
-            roles.forEach((role, index) => {
-                roleSelect.append(`<option value="${index}">${role['role-title']}</option>`);
-            });
-            $('select').formSelect();
+                });
+            }
+            else
+            {
+                showLoadingOverlay(false);
+            }
         }
 
         // Update Task List in the UI
@@ -427,10 +540,14 @@
             const taskList = $('#taskList').empty();
             tasks.forEach((task, index) => {
                 taskList.append(`
-                    <li class="collection-item">
+                    <li class="task-item edit-task"  data-index="${index}">
                         <span>${task['task-title']}</span>
-                        <button class="btn edit-task" data-index="${index}">Edit</button>
-                        <button class="btn delete-task" data-index="${index}">Delete</button>
+                        <span>Points: ${task['task-points']}</span>
+                        <span>Start: ${task['task-start-time']}</span>
+                        <span>End: ${task['task-end-time']}</span>
+                        <span>Resources: ${task['task-resources']?.length || 0}</span>
+                        <button class="simple_btn delete-task" data-index="${index}"  style="float:right;  margin-top:-5px;">Delete</button>
+                        <button class="simple_btn edit-task" data-index="${index}"  style="float:right;  margin-top:-5px;">Edit</button>
                     </li>
                 `);
             });
@@ -450,8 +567,10 @@
 
         // Delete Task
         function deleteTask(roleIndex, taskIndex) {
+            
             roles[roleIndex].tasks.splice(taskIndex, 1);
             saveRoleTasks(roleIndex);
+            
         }
 
         // Save Role's Tasks
