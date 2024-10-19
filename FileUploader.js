@@ -39,6 +39,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const uploadIcon = document.createElement('i');
         uploadIcon.classList.add("fas");
         uploadIcon.classList.add("fa-upload");
+        uploadIcon.parentNode = uploadBtn;
+
 
         // Create a progress bar
         const progressBar = document.createElement('progress');
