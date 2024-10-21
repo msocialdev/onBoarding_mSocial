@@ -450,6 +450,9 @@
                                 resolve(true); // Upload successful
                                 progressFill.parentElement.classList.remove("active");
                                 fileNameDiv.dataset.url = constructFinalUrl(signedUrl);
+                                fileNameDiv.parentElement.onclick = () => {
+                                    window.open(fileNameDiv.dataset.url, '_blank');
+                                };
                             } else {
                                 reject(new Error(`Upload failed with status: ${xhr.status}`));
                             }
