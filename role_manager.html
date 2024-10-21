@@ -334,11 +334,11 @@
             
                     const fileName = document.createElement('span');
                     fileName.className = 'file-name';
-                    fileName.textContent = getFileNameFromUrl(fileData);
-                    fileName.dataset.url = fileData;
+                    fileName.textContent = getFileNameFromUrl(decodeURIComponent(fileData));
+                    fileName.dataset.url = decodeURIComponent(fileData);
             
                     const fileIcon = document.createElement('i');
-                    fileIcon.className = getFileIcon(fileData); // Set the icon class
+                    fileIcon.className = getFileIcon(decodeURIComponent(fileData)); // Set the icon class
                     fileIcon.className += ' file-icon'; // Add styling class
             
                     const removeButton = document.createElement('div');
@@ -464,7 +464,7 @@
                 }
 
                 function constructFinalUrl(signedUrl) {
-                    const urlObject = new URL(signedUrl);
+                    const urlObject = new URL(decodeURIComponent(signedUrl));
                     // Construct the final URL based on the bucket and key
                     return `https://${urlObject.host}${urlObject.pathname}`;
                 }
@@ -644,7 +644,7 @@
             $('#taskStartModal').val(task['task-start-time']);
             $('#taskEndModal').val(task['task-end-time']);
             
-            if (task["task-resources"].length > 0) {
+            if (task["task-resources"]?.length > 0) {
                 $('#TaskLinkedFiles').val(task["task-resources"].join(","));
             }
             loadExistingFiles();
