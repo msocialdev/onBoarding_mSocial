@@ -286,6 +286,7 @@
                 }
             </style>
             <div class="input-field">
+                <h5>Files</h5>
                 <input type="text" name="linked_files" id="TaskLinkedFiles" style="display: none;" value="">
                 <input type="file" id="file-input" multiple style="display: none;">
                 <div id="file-upload-container"></div>
@@ -302,6 +303,7 @@
             
                 // Load existing files from the hidden input
                 function loadExistingFiles() {
+                    fileUploadContainer.innerHTML = "";
                     const urls = linkedFilesInput.value.split(',').filter(Boolean);
                     urls.forEach(url => createFileElement(url));
                 }
@@ -349,7 +351,9 @@
                     progressFill.className = 'progress-bar-fill';
                     progressBar.appendChild(progressFill);
             
-                    removeButton.onclick = () => {
+                    removeButton.onclick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         deleteFileFromServer(fileData).then(() => {
                             fileUploadContainer.removeChild(fileDiv);
                             updateHiddenInput();
@@ -640,9 +644,8 @@
             $('#taskStartModal').val(task['task-start-time']);
             $('#taskEndModal').val(task['task-end-time']);
             
-            if (task.resources.length > 0) {
-                console.log(task.resources.join(","));
-                $('#TaskLinkedFiles').val(task.resources.join(","));
+            if (task["task-resources"].length > 0) {
+                $('#TaskLinkedFiles').val(task["task-resources"].join(","));
             }
             loadExistingFiles();
 
@@ -660,14 +663,14 @@
                 'task-points':$('#taskPointsModal').val(),
                 'task-start-time': $('#taskStartModal').val(),
                 'task-end-time': $('#taskEndModal').val(),
-                'resources': []
+                'task-resources': []
             };
 
             
             const urls = $(this).find('input[name="linked_files"]').val();
             if (urls) {
                 const urlsArray = urls.split(",").filter(url => url.trim() !== "");
-                taskData.resources.push(...urlsArray);
+                taskData["task-resources"].push(...urlsArray);
             }
 
             if (editingTaskIndex !== null) {
