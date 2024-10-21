@@ -324,6 +324,7 @@
                     const fileName = document.createElement('span');
                     fileName.className = 'file-name';
                     fileName.textContent = getFileNameFromUrl(fileData);
+                    fileName.dataset.url = fileData;
             
                     const fileIcon = document.createElement('i');
                     fileIcon.className = getFileIcon(fileData); // Set the icon class
@@ -409,14 +410,14 @@
                         progressFill.parentElement.classList.add('active'); // Show progress bar
 
                         // Perform the file upload
-                        const uploadResult = await uploadFileToS3(file, signedUrl, progressFill);
+                        const uploadResult = await uploadFileToS3(file, signedUrl, progressFill, fileDiv.querySelector(".file-name"));
                         if (uploadResult) {
                             updateHiddenInput(); // Update hidden input after successful upload
                         }
                     }
                 }
 
-                async function uploadFileToS3(file, signedUrl, progressFill) {
+                async function uploadFileToS3(file, signedUrl, progressFill, fileNameDiv) {
                     return new Promise((resolve, reject) => {
                         const xhr = new XMLHttpRequest();
                         xhr.open("PUT", signedUrl, true);
@@ -432,6 +433,8 @@
                         xhr.onload = () => {
                             if (xhr.status === 200) {
                                 resolve(true); // Upload successful
+                                progressFill.style.display = "none";
+                                fileNameDiv.dataset.url = constructFinalUrl(signedUrl);
                             } else {
                                 reject(new Error(`Upload failed with status: ${xhr.status}`));
                             }
@@ -444,10 +447,16 @@
                         xhr.send(file);
                     });
                 }
+
+                function constructFinalUrl(signedUrl) {
+                    const urlObject = new URL(signedUrl);
+                    // Construct the final URL based on the bucket and key
+                    return `https://${urlObject.host}${urlObject.pathname}`;
+                }
             
                 function updateHiddenInput() {
                     const uploadedFiles = Array.from(fileUploadContainer.children)
-                        .map(fileDiv => fileDiv.querySelector('.file-name').textContent); // Assuming the span contains the URL
+                        .map(fileDiv => fileDiv.querySelector('.file-name').dataset.url); // Assuming the span contains the URL
                     linkedFilesInput.value = uploadedFiles.join(',');
                 }
             
