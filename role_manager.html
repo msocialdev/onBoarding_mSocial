@@ -79,6 +79,7 @@
             cursor: pointer;
             margin-left:5px;
             color:#666;
+            text-align: center;
         }
         .simple_btn:hover
         {
@@ -240,6 +241,10 @@
                     padding: 10px;
                     border: 1px solid #ccc;
                     border-radius: 5px;
+                    cursor: pointer;
+                }
+                .file-element:hover {
+                    background-color: #9fffa2;
                 }
                 .file-icon {
                     margin-right: 10px;
@@ -281,10 +286,10 @@
                 }
             </style>
             <div class="input-field">
-                <input type="hidden" name="linked_files" id="TaskLinkedFiles" value="">
+                <input type="text" name="linked_files" id="TaskLinkedFiles" style="display: none;" value="">
                 <input type="file" id="file-input" multiple style="display: none;">
-                <div id="upload-button" class="simple_btn" style="margin-left:0px; margin-bottom:20px; margin-top:-10px;">+ Add Resources</div>
                 <div id="file-upload-container"></div>
+                <div id="upload-button" class="simple_btn" style="margin-left:0px; margin-bottom:10px; margin-top:20px;">+ Add Files</div>
             </div>
 
             <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
@@ -320,6 +325,10 @@
                 function createFileElement(fileData) {
                     const fileDiv = document.createElement('div');
                     fileDiv.className = 'file-element';
+
+                    fileDiv.onclick = () => {
+                        window.open(fileData, '_blank');
+                    };
             
                     const fileName = document.createElement('span');
                     fileName.className = 'file-name';
@@ -404,10 +413,11 @@
 
                 async function uploadFiles(files) {
                     for (const file of files) {
-                        const signedUrl = await getSignedUrl(file);
-                        const { fileDiv, progressFill } = createFileElement(file.name); // Create file element and get elements for progress update
                         
+                        const { fileDiv, progressFill } = createFileElement(file.name); // Create file element and get elements for progress update
                         progressFill.parentElement.classList.add('active'); // Show progress bar
+                        
+                        const signedUrl = await getSignedUrl(file);
 
                         // Perform the file upload
                         const uploadResult = await uploadFileToS3(file, signedUrl, progressFill, fileDiv.querySelector(".file-name"));
@@ -630,8 +640,10 @@
             $('#taskEndModal').val(task['task-end-time']);
             
             if (task.resources.length > 0) {
-                $(this).find('input[name="linked_files"]').val(task.resources.join(","));
+                console.log(task.resources.join(","));
+                $('#TaskLinkedFiles').val(task.resources.join(","));
             }
+            loadExistingFiles();
 
             $('#modalTaskTitle').text('Edit Task');
             M.updateTextFields();
