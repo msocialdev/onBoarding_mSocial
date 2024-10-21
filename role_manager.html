@@ -323,6 +323,13 @@
                     }
                 }
 
+                function DecodeText(str)
+                {
+                    var newstr = decodeURIComponent(str).replace("%20", ' ');
+                    console.log(newstr);
+                    return newstr;
+                }
+
             
                 function createFileElement(fileData) {
                     const fileDiv = document.createElement('div');
@@ -334,11 +341,11 @@
             
                     const fileName = document.createElement('span');
                     fileName.className = 'file-name';
-                    fileName.textContent = getFileNameFromUrl(decodeURIComponent(fileData));
-                    fileName.dataset.url = decodeURIComponent(fileData);
+                    fileName.textContent = DecodeText(getFileNameFromUrl(fileData));
+                    fileName.dataset.url = DecodeText(fileData);
             
                     const fileIcon = document.createElement('i');
-                    fileIcon.className = getFileIcon(decodeURIComponent(fileData)); // Set the icon class
+                    fileIcon.className = getFileIcon(DecodeText(fileData)); // Set the icon class
                     fileIcon.className += ' file-icon'; // Add styling class
             
                     const removeButton = document.createElement('div');
@@ -467,7 +474,7 @@
                 }
 
                 function constructFinalUrl(signedUrl) {
-                    const urlObject = new URL(decodeURIComponent(signedUrl));
+                    const urlObject = new URL(DecodeText(signedUrl));
                     // Construct the final URL based on the bucket and key
                     return `https://${urlObject.host}${urlObject.pathname}`;
                 }
@@ -576,6 +583,7 @@
 
             if (editingRoleIndex !== null) {
                 roleData['role-id'] = roles[editingRoleIndex]['role-id'];
+                roleData['tasks'] = roles[editingRoleIndex]['tasks'];
                 updateRole(roleData);
             } else {
                 addRole(roleData);
