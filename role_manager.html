@@ -301,15 +301,21 @@
                     urls.forEach(url => createFileElement(url));
                 }
                 function getFileNameFromUrl(url) {
-                    // Create a new URL object
-                    const urlObject = new URL(url);
-                    
-                    // Use pathname to get the path and split it by '/' to extract the last part
-                    const pathSegments = urlObject.pathname.split('/');
-                    
-                    // Return the last segment as the file name
-                    return pathSegments[pathSegments.length - 1];
+                    try {
+                        // Try to create a new URL object
+                        const urlObject = new URL(url);
+                        
+                        // Use pathname to get the path and split it by '/' to extract the last part
+                        const pathSegments = urlObject.pathname.split('/');
+                        
+                        // Return the last segment as the file name
+                        return pathSegments[pathSegments.length - 1];
+                    } catch (error) {
+                        // If an error occurs (e.g., invalid URL), return the input string
+                        return url;
+                    }
                 }
+
             
                 function createFileElement(fileData) {
                     const fileDiv = document.createElement('div');
