@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/min/dropzone.min.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/min/dropzone.min.js"></script>
-    <link href="FileUploader.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <title>Role Management System</title>
     <style>
         body {
@@ -230,11 +228,235 @@
                     <label for="taskEndModal">End Time (ex: "4:18" = 5th Day at 6 PM)</label>
                 </div>
             </div>
+            <style>
+                .input-field {
+                    margin: 20px;
+                }
+                .file-element {
+                    position: relative;
+                    display: flex;
+                    align-items: center;
+                    margin-bottom: 10px;
+                    padding: 10px;
+                    border: 1px solid #ccc;
+                    border-radius: 5px;
+                }
+                .file-icon {
+                    margin-right: 10px;
+                    font-size: 24px;
+                }
+                .file-name {
+                    flex-grow: 1;
+                    font-size: 16px;
+                }
+                .remove-button {
+                    position: absolute;
+                    right: 10px;
+                    top: 10px;
+                    background: none;
+                    border: none;
+                    color: red;
+                    cursor: pointer;
+                    font-size: 16px;
+                }
+                .progress-bar {
+                    position: absolute;
+                    bottom: 5px;
+                    left: 0;
+                    right: 0;
+                    height: 4px;
+                    background: #e0e0e0;
+                    border-radius: 2px;
+                    overflow: hidden;
+                    opacity: 0; /* Hidden by default */
+                    transition: opacity 0.2s ease;
+                }
+                .progress-bar.active {
+                    opacity: 1; /* Show during upload */
+                }
+                .progress-bar-fill {
+                    height: 100%;
+                    background: #4caf50;
+                    width: 0%;
+                }
+            </style>
             <div class="input-field">
-                <div id="file-upload-area" class="dropzone"></div>
-                <input type="hidden" name="existing_files" value="https://example.com/file1.jpg,https://example.com/file2.pdf">
+                <input type="hidden" name="linked_files" id="TaskLinkedFiles" value="">
+                <input type="file" id="file-input" multiple style="display: none;">
+                <div id="upload-button" class="simple_btn" style="margin-left:0px; margin-bottom:20px; margin-top:-10px;">+ Add Resources</div>
+                <div id="file-upload-container"></div>
             </div>
 
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
+            <script>
+                const lambdaUrl = 'https://45xhcs9iue.execute-api.ap-south-1.amazonaws.com/Release/fileupload';
+                const linkedFilesInput = document.getElementById('TaskLinkedFiles');
+                const fileUploadContainer = document.getElementById('file-upload-container');
+                const fileInput = document.getElementById('file-input');
+                const uploadButton = document.getElementById('upload-button');
+            
+                // Load existing files from the hidden input
+                function loadExistingFiles() {
+                    const urls = linkedFilesInput.value.split(',').filter(Boolean);
+                    urls.forEach(url => createFileElement(url));
+                }
+                function getFileNameFromUrl(url) {
+                    // Create a new URL object
+                    const urlObject = new URL(url);
+                    
+                    // Use pathname to get the path and split it by '/' to extract the last part
+                    const pathSegments = urlObject.pathname.split('/');
+                    
+                    // Return the last segment as the file name
+                    return pathSegments[pathSegments.length - 1];
+                }
+            
+                function createFileElement(fileData) {
+                    const fileDiv = document.createElement('div');
+                    fileDiv.className = 'file-element';
+            
+                    const fileName = document.createElement('span');
+                    fileName.className = 'file-name';
+                    fileName.textContent = getFileNameFromUrl(fileData);
+            
+                    const fileIcon = document.createElement('i');
+                    fileIcon.className = getFileIcon(fileData); // Set the icon class
+                    fileIcon.className += ' file-icon'; // Add styling class
+            
+                    const removeButton = document.createElement('div');
+                    removeButton.innerHTML = '<i class="fas fa-times"></i>'; // Font Awesome close icon
+                    removeButton.className = 'remove-button';
+                    
+                    const progressBar = document.createElement('div');
+                    progressBar.className = 'progress-bar';
+                    const progressFill = document.createElement('div');
+                    progressFill.className = 'progress-bar-fill';
+                    progressBar.appendChild(progressFill);
+            
+                    removeButton.onclick = () => {
+                        deleteFileFromServer(fileData).then(() => {
+                            fileUploadContainer.removeChild(fileDiv);
+                            updateHiddenInput();
+                        });
+                    };
+            
+                    fileDiv.appendChild(fileIcon);
+                    fileDiv.appendChild(fileName);
+                    fileDiv.appendChild(removeButton);
+                    fileDiv.appendChild(progressBar);
+                    fileUploadContainer.appendChild(fileDiv);
+                    
+                    return { fileDiv, progressFill }; // Return elements for updating progress
+                }
+            
+                function getFileIcon(fileName) {
+                    const extension = fileName.split('.').pop().toLowerCase();
+                    switch (extension) {
+                        case 'jpg':
+                        case 'jpeg':
+                        case 'png':
+                        case 'gif':
+                            return 'fas fa-file-image'; // Font Awesome image icon
+                        case 'pdf':
+                            return 'fas fa-file-pdf'; // Font Awesome PDF icon
+                        case 'doc':
+                        case 'docx':
+                            return 'fas fa-file-word'; // Font Awesome Word document icon
+                        case 'xls':
+                        case 'xlsx':
+                            return 'fas fa-file-excel'; // Font Awesome Excel document icon
+                        case 'ppt':
+                        case 'pptx':
+                            return 'fas fa-file-powerpoint'; // Font Awesome PowerPoint icon
+                        case 'mp4':
+                        case 'avi':
+                        case 'mov':
+                            return 'fas fa-file-video'; // Font Awesome video icon
+                        case 'mp3':
+                        case 'wav':
+                            return 'fas fa-file-audio'; // Font Awesome audio icon
+                        case 'zip':
+                        case 'rar':
+                            return 'fas fa-file-archive'; // Font Awesome archive icon
+                        default:
+                            return 'fas fa-file'; // Default file icon for other file types
+                    }
+                }
+            
+                async function getSignedUrl(file) {
+                    const response = await fetch(`${lambdaUrl}?file_name=${file.name}&file_type=${file.type}`);
+                    const data = await response.json();
+                    return data.upload_url;
+                }
+            
+                async function deleteFileFromServer(fileUrl) {
+                    const url = `${lambdaUrl}?url=${encodeURIComponent(fileUrl)}`;
+                    await fetch(url, { method: 'GET' });
+                }
+            
+
+                async function uploadFiles(files) {
+                    for (const file of files) {
+                        const signedUrl = await getSignedUrl(file);
+                        const { fileDiv, progressFill } = createFileElement(file.name); // Create file element and get elements for progress update
+                        
+                        progressFill.parentElement.classList.add('active'); // Show progress bar
+
+                        // Perform the file upload
+                        const uploadResult = await uploadFileToS3(file, signedUrl, progressFill);
+                        if (uploadResult) {
+                            updateHiddenInput(); // Update hidden input after successful upload
+                        }
+                    }
+                }
+
+                async function uploadFileToS3(file, signedUrl, progressFill) {
+                    return new Promise((resolve, reject) => {
+                        const xhr = new XMLHttpRequest();
+                        xhr.open("PUT", signedUrl, true);
+                        xhr.setRequestHeader("Content-Type", file.type);
+
+                        xhr.upload.onprogress = (event) => {
+                            if (event.lengthComputable) {
+                                const percentComplete = (event.loaded / event.total) * 100;
+                                progressFill.style.width = percentComplete + '%';
+                            }
+                        };
+
+                        xhr.onload = () => {
+                            if (xhr.status === 200) {
+                                resolve(true); // Upload successful
+                            } else {
+                                reject(new Error(`Upload failed with status: ${xhr.status}`));
+                            }
+                        };
+
+                        xhr.onerror = () => {
+                            reject(new Error("Upload failed due to a network error."));
+                        };
+
+                        xhr.send(file);
+                    });
+                }
+            
+                function updateHiddenInput() {
+                    const uploadedFiles = Array.from(fileUploadContainer.children)
+                        .map(fileDiv => fileDiv.querySelector('.file-name').textContent); // Assuming the span contains the URL
+                    linkedFilesInput.value = uploadedFiles.join(',');
+                }
+            
+                uploadButton.onclick = () => {
+                    fileInput.click();
+                };
+            
+                fileInput.onchange = (event) => {
+                    const files = event.target.files;
+                    uploadFiles(files);
+                };
+            
+                loadExistingFiles();
+            </script>
+            
             <center>
             <button type="submit" class="simple_btn" style="background-color: rgb(0, 89, 255); color: white; font-size: 18px; margin-top:20px;">Save Task</button>
         </center>
@@ -244,8 +466,9 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-<script src="FileUploader.js"></script>
 <script>
+   
+
     const API_URL = 'https://lfbuy6m7eeuooe5dpsya6xo64m0sicrs.lambda-url.ap-south-1.on.aws';
     let roles = [];
     let editingRoleIndex = null;
@@ -254,6 +477,9 @@
 
     $(document).ready(function() {
         $('.modal').modal();
+        // $('.modal').modal({
+        //     dismissible: false
+        // });
         $('select').formSelect();
 
         // Get the current URL
@@ -387,10 +613,11 @@
             $('#taskPointsModal').val(task['task-points']);
             $('#taskStartModal').val(task['task-start-time']);
             $('#taskEndModal').val(task['task-end-time']);
-            $('#resourceInputs').empty();
-            task.resources.forEach((resource, index) => {
-                addResourceField(resource.title, resource.url, index);
-            });
+            
+            if (task.resources.length > 0) {
+                $(this).find('input[name="linked_files"]').val(task.resources.join(","));
+            }
+
             $('#modalTaskTitle').text('Edit Task');
             M.updateTextFields();
             $('#taskModal').modal('open');
@@ -408,11 +635,12 @@
                 'resources': []
             };
 
-            $('#resourceInputs .resource-field').each(function() {
-                const resourceTitle = $(this).find('input[name="resourceTitle"]').val();
-                const resourceUrl = $(this).find('input[name="resourceUrl"]').val();
-                taskData.resources.push({ title: resourceTitle, url: resourceUrl });
-            });
+            
+            const urls = $(this).find('input[name="linked_files"]').val();
+            if (urls) {
+                const urlsArray = urls.split(",").filter(url => url.trim() !== "");
+                taskData.resources.push(...urlsArray);
+            }
 
             if (editingTaskIndex !== null) {
                 taskData['task-id'] = roles[selectedRoleIndex].tasks[editingTaskIndex]["task-id"];
@@ -433,16 +661,7 @@
             }
         });
 
-        // Add Resource Field
-        $('#addResourceBtn').click(function(e) {
-            e.preventDefault();
-            addResourceField();
-        });
-
-        // Remove Resource Field
-        $(document).on('click', '.delete-resource-btn', function() {
-            $(this).closest('.resource-field').remove();
-        });
+       
 
         // Utility function to generate time-based UUID-like identifier
         function generateUUID() {
@@ -452,17 +671,6 @@
                 const v = c === 'x' ? r : (r & 0x3 | 0x8); // Random value based on UUID spec
                 return v.toString(16);
             }).replace(/^.{8}/, timestamp); // Replace the first part with the timestamp
-        }
-
-
-        function addResourceField(title = '', url = '', index = null) {
-            const field = `
-                <div class="resource-field">
-                    <input type="text" name="resourceTitle" placeholder="Resource Title" value="${title}">
-                    <input type="text" name="resourceUrl"  data-file-upload="true" placeholder="Resource URL" value="${url}">
-                    <button class="delete-resource-btn" data-index="${index}">&#10060;</button>
-                </div>`;
-            $('#resourceInputs').append(field);
         }
 
         function resetTaskModal() {
