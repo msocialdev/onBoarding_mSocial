@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/min/dropzone.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/min/dropzone.min.js"></script>
     <link href="FileUploader.css" rel="stylesheet">
     <title>Role Management System</title>
     <style>
@@ -230,9 +231,10 @@
                 </div>
             </div>
             <div class="input-field">
-                <div id="resourceInputs"></div>
-                <button id="addResourceBtn" class="simple_btn">+ Add Resource</button>
+                <div id="file-upload-area" class="dropzone"></div>
+                <input type="hidden" name="existing_files" value="https://example.com/file1.jpg,https://example.com/file2.pdf">
             </div>
+
             <center>
             <button type="submit" class="simple_btn" style="background-color: rgb(0, 89, 255); color: white; font-size: 18px; margin-top:20px;">Save Task</button>
         </center>

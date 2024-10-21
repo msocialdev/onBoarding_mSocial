@@ -1,174 +1,105 @@
 document.addEventListener('DOMContentLoaded', function () {
-    // Lambda URL for signed URL generation and file deletion
     const lambdaUrl = 'https://45xhcs9iue.execute-api.ap-south-1.amazonaws.com/Release/fileupload';
+    let uploadedFiles = [];  // Store existing file URLs
+    let dropzoneInstance;     // Declare dropzoneInstance here
 
-    // Function to generate the presigned URL from the Lambda
+    // Fetch existing files and initialize Dropzone with them
+    function loadExistingFiles() {
+        const existingFilesInput = document.querySelector('input[name="existing_files"]');
+        if (existingFilesInput && existingFilesInput.value) {
+            const existingFiles = existingFilesInput.value.split(',');
+            existingFiles.forEach(fileUrl => {
+                if (fileUrl) {
+                    uploadedFiles.push(fileUrl);
+                    addFileToDropzone(fileUrl);
+                }
+            });
+        }
+    }
+
+    function addFileToDropzone(fileUrl) {
+        const mockFile = { name: fileUrl.split('/').pop(), size: 12345, accepted: true };
+        dropzoneInstance.emit("addedfile", mockFile);
+        dropzoneInstance.emit("thumbnail", mockFile, fileUrl);  // Optional: If you want to display file thumbnail
+        dropzoneInstance.emit("complete", mockFile);
+    }
+
+    // Disable Dropzone's auto-discovery to prevent automatic attachment
+    Dropzone.autoDiscover = false;
+
+    // Remove any existing Dropzone instances to prevent "already attached" error
+    if (Dropzone.instances.length > 0) {
+        Dropzone.instances.forEach(instance => instance.destroy());
+    }
+
+    // Initialize Dropzone
+    dropzoneInstance = new Dropzone('#file-upload-area', {
+        url: '#',  // Provide a dummy URL since we're manually handling uploads
+        autoProcessQueue: false,  // Prevent auto uploading, we will manually upload
+        parallelUploads: 10,
+        maxFilesize: 7000,  // Max file size in MB
+        acceptedFiles: "*",  // Accept any file type (can be customized)
+
+        // Customizing the text in the Dropzone box
+        dictDefaultMessage: "Drag and drop files here or click to upload",  // Custom message
+        dictFallbackMessage: "Your browser does not support drag and drop file uploads.",
+        dictFileTooBig: "File is too big ({{filesize}}MB). Max allowed size is {{maxFilesize}}MB.",
+        dictInvalidFileType: "You can't upload files of this type.",
+        dictRemoveFile: "Remove file",
+        dictCancelUpload: "Cancel upload",
+
+        init: function () {
+            // Event listener for input changes
+            const existingFilesInput = document.querySelector('input[name="existing_files"]');
+            existingFilesInput.addEventListener('change', loadExistingFiles);
+
+            this.on("addedfile", async function (file) {
+                // Get the signed URL
+                const signedUrl = await getSignedUrl(file);
+
+                // Manually send the file to the signed URL
+                const xhr = new XMLHttpRequest();
+                xhr.open('PUT', signedUrl, true);
+                xhr.onload = function () {
+                    if (xhr.status === 200) {
+                        const fileUrl = signedUrl.split('?')[0];  // Get the file URL without the query params
+                        uploadedFiles.push(fileUrl);
+                        updateHiddenField();
+                        dropzoneInstance.emit('success', file, { fileUrl });
+                    } else {
+                        dropzoneInstance.emit('error', file, 'Upload error');
+                    }
+                };
+                xhr.onerror = function () {
+                    dropzoneInstance.emit('error', file, 'Upload failed');
+                };
+                xhr.send(file);
+            });
+
+            this.on("removedfile", async function (file) {
+                const fileUrl = uploadedFiles.find(url => url.includes(file.name));
+                await deleteFileFromServer(fileUrl);
+                uploadedFiles = uploadedFiles.filter(url => url !== fileUrl);
+                updateHiddenField();
+            });
+        }
+    });
+
+    // Function to update the hidden input field with uploaded file URLs
+    function updateHiddenField() {
+        document.querySelector('input[name="existing_files"]').value = uploadedFiles.join(',');
+    }
+
+    // Function to get signed URL
     async function getSignedUrl(file) {
         const response = await fetch(`${lambdaUrl}?file_name=${file.name}&file_type=${file.type}`);
         const data = await response.json();
         return data.upload_url;
     }
 
-    // Function to replace URL input fields with upload functionality
-    function initializeFileUploadFields() {
-        // Find all input fields with the data-file-upload attribute
-        document.querySelectorAll('input[data-file-upload]').forEach(inputField => {
-            if (inputField.type === 'text') {
-                createFileUploadUI(inputField);
-            }
-        });
+    // Function to delete file from server
+    async function deleteFileFromServer(fileUrl) {
+        const url = `${lambdaUrl}?url=${encodeURIComponent(fileUrl)}`;
+        await fetch(url, { method: 'GET' });
     }
-
-    // Function to create the file upload UI (file input, progress bar, etc.)
-    function createFileUploadUI(inputField) {
-        // Hide the original input field and create a hidden input
-        inputField.type = 'hidden';
-        const hiddenField = inputField;
-        
-        const fileURL_display = document.createElement('div');
-        fileURL_display.innerText = inputField.value;
-        
-
-
-        // Create a new file input
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = '*';  // Accept any file type (you can adjust this)
-
-        const uploadBtn = document.createElement('button');
-        const uploadIcon = document.createElement('i');
-        uploadIcon.classList.add("fas");
-        uploadIcon.classList.add("fa-upload");
-        uploadIcon.parentNode = uploadBtn;
-
-
-        // Create a progress bar
-        const progressBar = document.createElement('progress');
-        progressBar.max = 100;
-        progressBar.value = 0;
-        progressBar.style.display = 'none';  // Hide by default
-
-        // Create a remove file button
-        const removeButton = document.createElement('button');
-        removeButton.textContent = 'Remove File';
-        removeButton.style.display = 'none';  // Hide by default
-
-        // Event listener for file selection
-        fileInput.addEventListener('change', async function (event) {
-            const file = event.target.files[0];
-            if (file) {
-                // Disable file input to prevent changes during upload
-                fileInput.disabled = true;
-
-                try {
-                    const signedUrl = await getSignedUrl(file);
-                    uploadFile(file, signedUrl, hiddenField, progressBar, removeButton, fileInput,fileURL_display);
-                } catch (error) {
-                    console.error('Error generating signed URL:', error);
-                }
-            }
-        });
-
-        // Event listener for removing the uploaded file
-        removeButton.addEventListener('click', async function (event) {
-            event.preventDefault();  // Prevent default button action
-            const fileUrl = hiddenField.value;
-            if (fileUrl) {
-                try {
-                    // Call the Lambda to delete the file
-                    await fetch(`${lambdaUrl}?url=${encodeURIComponent(fileUrl)}`, { method: 'GET' });
-                    hiddenField.value = '';  // Clear the hidden field
-                    fileInput.disabled = false;  // Enable file input
-                    fileInput.value = "";
-                    fileInput.style.display = 'inline-block'; 
-                    fileURL_display.style.display = 'none'; 
-                    progressBar.style.display = 'none';  // Hide progress bar
-                    removeButton.style.display = 'none';  // Hide remove button
-                } catch (error) {
-                    console.error('Error deleting file:', error);
-                }
-            }
-        });
-
-        // Insert the file input, progress bar, and remove button into the DOM
-        inputField.parentNode.insertBefore(fileInput, inputField.nextSibling);
-        inputField.parentNode.insertBefore(progressBar, fileInput.nextSibling);
-        inputField.parentNode.insertBefore(fileURL_display, progressBar.nextSibling);
-        inputField.parentNode.insertBefore(removeButton, fileURL_display.nextSibling);
-        
-        if (inputField.value)
-        {
-            fileInput.style.display = 'none'; 
-            progressBar.style.display = 'none';
-            fileURL_display.style.display = 'inline-block'; 
-            removeButton.style.display = 'inline-block';
-        }
-        else
-        {
-            fileInput.style.display = 'inline-block'; 
-            progressBar.style.display = 'none';
-            fileURL_display.style.display = 'none'; 
-            removeButton.style.display = 'none';
-        }
-    }
-
-    // Function to upload the file
-    function uploadFile(file, signedUrl, hiddenField, progressBar, removeButton, fileInput,fileURL_display) {
-        const xhr = new XMLHttpRequest();
-        xhr.open('PUT', signedUrl, true);
-
-        // Show the progress bar
-        progressBar.style.display = 'block';
-
-        // Track upload progress
-        xhr.upload.onprogress = function (event) {
-            if (event.lengthComputable) {
-                const percentComplete = Math.round((event.loaded / event.total) * 100);
-                progressBar.value = percentComplete;
-            }
-        };
-
-        // On upload complete
-        xhr.onload = function () {
-            if (xhr.status === 200) {
-                // Set the final URL in the hidden input field
-                const fileUrl = signedUrl.split('?')[0];  // Get the file URL without query params
-                hiddenField.value = fileUrl;
-
-                // Show the remove button and enable the file input
-                fileInput.style.display = 'none'; 
-                progressBar.style.display = 'none';
-                removeButton.style.display = 'inline-block';
-                fileURL_display.innerText = fileUrl;
-                fileURL_display.style.display = 'inline-block';
-            } else {
-                console.error('File upload failed:', xhr.responseText);
-                fileInput.disabled = false;  // Re-enable the file input
-            }
-        };
-
-        // On upload error
-        xhr.onerror = function () {
-            console.error('Error during file upload.');
-            fileInput.disabled = false;  // Re-enable the file input
-        };
-
-        // Start uploading the file
-        xhr.send(file);
-    }
-
-    // Initialize the file upload fields on page load
-    initializeFileUploadFields();
-
-    // Re-initialize file upload fields if new elements are dynamically added
-    const observer = new MutationObserver(function (mutationsList, observer) {
-        for (let mutation of mutationsList) {
-            if (mutation.type === 'childList') {
-                initializeFileUploadFields();
-            }
-        }
-    });
-
-    // Observe the body for changes (e.g., new input fields added dynamically)
-    observer.observe(document.body, { childList: true, subtree: true });
 });
