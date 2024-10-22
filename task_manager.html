@@ -90,10 +90,6 @@
             background-color: #d4edda;
         }
 
-        .add-subtask-form, .add-submission-form {
-            margin-top: 15px;
-        }
-
         .file-upload {
             margin-top: 10px;
         }
@@ -130,11 +126,45 @@
         {
             padding:40px;
         }
+        .more-info
+        {
+            background-color: #727272;
+            padding: 5px 20px;
+            justify-content: center;
+            align-items: center;
+            padding-top:6px;
+        }  
+        .simple_btn
+        {
+            background-color: white;
+            box-shadow: 0px 0px 5px #ddd;
+            border:1px solid #ddd;
+            border-radius: 5px;
+            padding:5px;
+            padding-left:20px;
+            padding-right:20px;
+            font-weight: 800;
+            font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+            text-transform:uppercase;
+            font-size: 15px;
+            cursor: pointer;
+            margin-left:5px;
+            color:#666;
+            text-align: center;
+            box-sizing: border-box;
+            margin-top: -20px;
+            margin-bottom:20px;
+        }
+        .simple_btn:hover
+        {
+            background-color: rgb(0, 89, 255);
+            color: white;
+        }
     </style>
 </head>
 <body>
 
-<div class="main">
+<div class="main TaskListView">
     <h1 class="text-left mb-5">Tasks Assigned</h1>
 
     <div class="task-list" style="margin-top:-20px;">
@@ -142,87 +172,44 @@
     </div>
 </div>
 
-<!-- Task Modal -->
-<div class="modal fade" id="taskModal" tabindex="-1" aria-labelledby="taskModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title-wrapper">
-                    <h5 class="modal-title">Task Details</h5>
-                    <select class="form-select form-select-sm w-auto" id="taskStatus" onchange="changeStatus()">
-                        <option value="Waiting to start">Waiting to start</option>
-                        <option value="On hold">On hold</option>
-                        <option value="Planning in progress">Planning in progress</option>
-                        <option value="Work in progress">Work in progress</option>
-                        <option value="Done">Done</option>
-                    </select>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <ul class="nav nav-tabs" id="taskTabs" role="tablist">
-                    <li class="nav-item">
-                        <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">Overview</button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link" id="subtasks-tab" data-bs-toggle="tab" data-bs-target="#subtasks" type="button" role="tab" aria-controls="subtasks" aria-selected="false">Subtasks</button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link" id="submissions-tab" data-bs-toggle="tab" data-bs-target="#submissions" type="button" role="tab" aria-controls="submissions" aria-selected="false">Submissions</button>
-                    </li>
-                </ul>
-                <div class="tab-content" id="taskTabsContent">
-                    <!-- Overview Tab -->
-                    <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
-                        <div class="mt-4">
-                            <h6 id="taskTitle"></h6>
-                            <p id="taskDescription"></p>
-                            <p id="taskDeadline"></p>
-                            <div id="taskResources"></div>
-                        </div>
-                    </div>
-
-                    <!-- Subtasks Tab -->
-                    <div class="tab-pane fade" id="subtasks" role="tabpanel" aria-labelledby="subtasks-tab">
-                        <div class="mt-4">
-                            <div id="subtaskList" class="mb-4"></div>
-                            <h6>Add New Subtask</h6>
-                            <div class="add-subtask-form">
-                                <div class="input-group mb-3">
-                                    <input type="text" class="form-control" id="newSubtaskTitle" placeholder="Subtask Title">
-                                    <button class="btn btn-outline-primary" type="button" onclick="addSubtask()">Add</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Submissions Tab -->
-                    <div class="tab-pane fade" id="submissions" role="tabpanel" aria-labelledby="submissions-tab">
-                        <div class="mt-4">
-                            <div id="submissionList" class="mb-4"></div>
-                            <h6>Add New Submission</h6>
-                            <div class="add-submission-form">
-                                <div class="input-group mb-3">
-                                    <input type="text" class="form-control" id="newSubmissionTitle" placeholder="Submission Title">
-                                </div>
-                                <div class="input-group mb-3">
-                                    <textarea class="form-control" id="newSubmissionDescription" placeholder="Submission Description"></textarea>
-                                </div>
-                                <div class="input-group mb-3" id="file-container">
-                                    <input type="text" class="form-control file-url-input" id="newSubmissionFiles" placeholder="File URL" data-file-upload="true">
-                                </div>
-                                <button class="btn btn-outline-primary" type="button" onclick="addSubmission()">Add Submission</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-  
-
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+<div class="main TaskDetailsView">
+    <button id="backBtn" class="simple_btn" onclick="GotoTasklist();"> < All Tasks</button>
+    <h2 class="text-left mb-5" id="taskTitle">Task Title</h2>
+    <select class="form-select form-select-sm w-auto"  style="margin-top:-40px; margin-bottom:20px;" id="taskStatus" onchange="changeStatus()">
+        <option value="Waiting to start">Waiting to start</option>
+        <option value="On hold">On hold</option>
+        <option value="Planning in progress">Planning in progress</option>
+        <option value="Work in progress">Work in progress</option>
+        <option value="Done">Done</option>
+    </select>
+    <p id="taskDescription">Task Description</p>
+    <p id="taskDeadline">Task Deadline</p>
+    <div id="taskResources">Task resources</div>
+    <hr/>
+    <div >
+        <h5>Subtasks</h5>
+        <div id="subtaskList" class="mb-4"></div>
+        <div class="add-subtask-form" style="margin-top:-16px;">
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" id="newSubtaskTitle" placeholder="Add Subtask" style="background-color: rgb(230, 241, 255); font-weight: 700;">
+                <button class="btn btn-outline-primary" type="button" onclick="addSubtask()">Add</button>
             </div>
         </div>
+    </div>
+    <hr/>
+    <div id="submissionList" class="mb-4"></div>
+    <h5>Submissions</h5>
+    <div class="add-submission-form">
+        <div class="input-group mb-3">
+            <input type="text" class="form-control" id="newSubmissionTitle" placeholder="Submission Title">
+        </div>
+        <div class="input-group mb-3">
+            <textarea class="form-control" id="newSubmissionDescription" placeholder="Submission Description"></textarea>
+        </div>
+        <div class="input-group mb-3" id="file-container">
+            <input type="text" class="form-control file-url-input" id="newSubmissionFiles" placeholder="File URL" data-file-upload="true">
+        </div>
+        <button class="btn btn-outline-primary" type="button" onclick="addSubmission()">Add Submission</button>
     </div>
 </div>
 
@@ -231,6 +218,20 @@
 <script>
 const API_URL = 'https://irdr4lzsd62kn2jheybijyai7e0vqfkt.lambda-url.ap-south-1.on.aws'; // Replace with your Lambda function URL
 const email = new URLSearchParams(window.location.search).get('email');
+const task_id = new URLSearchParams(window.location.search).get('taskid');
+
+if(task_id)
+{
+    $('.TaskListView').hide();
+    DisplayTaskData(task_id)
+    $('.TaskDetailsView').show();
+}
+else
+{
+    $('.TaskListView').show();
+    $('.TaskDetailsView').hide();
+}
+
 // Sample fake data to simulate the tasks
 let test_state = {};
 
@@ -253,7 +254,9 @@ function renderTaskList() {
             tasks.forEach(task => {
                 const taskItem = document.createElement('div');
                 taskItem.onclick = function() {
-                    openTaskModal(task['task-id']);
+                    let currentUrl = new URL(window.location.href);
+                    currentUrl.searchParams.set('taskid', task['task-id']);
+                    window.location.href = currentUrl.toString();
                 };
 
                 taskItem.className = 'task-item';
@@ -262,9 +265,9 @@ function renderTaskList() {
                         <strong>${task['task-title']}</strong>
                     </div>
                     <div>
-                        <span class="badge bg-info">${task.subtasks.filter(st => !st['subtask-status']).length} Pending Subtasks</span>
-                        <span class="badge bg-info">${task['task-submissions']?task['task-submissions'].length:0} Submissions</span>
-                        <span class="badge bg-info">Deadline: ${task['task-deadline']}</span>
+                        <span class="badge more-info">${task.subtasks.filter(st => !st['subtask-status']).length} Pending Subtasks</span>
+                        <span class="badge more-info">${task['task-submissions']?task['task-submissions'].length:0} Submissions</span>
+                        <span class="badge more-info">Deadline: ${task['task-deadline']}</span>
                         <span class="task-status badge bg-primary">${task['task-status']}</span>
                     </div>
                 `;
@@ -277,75 +280,87 @@ function renderTaskList() {
     .catch(error => console.error('Error loading tasks:', error));
 }
 
+function GotoTasklist()
+{
+    let currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('taskid', '');
+    window.location.href = currentUrl.toString();
+}
+
 
 // Open the task modal and display task details
-function openTaskModal(taskId) {
+function DisplayTaskData(taskId) {
 
-    const modalElement = document.getElementById('taskModal');
-    const modal = new bootstrap.Modal(modalElement);
+    fetch(`${API_URL}?email=${email}`, {
+        method: 'GET',
+    })
+    .then(response => response.json())
+    .then(data => {
+        test_state = data;
 
-    modal.hide();
-    $(document.body).removeClass("modal-open");
-    $(".modal-backdrop").remove();
+        // Ensure test_state and test_state.tasks are defined
+        if (test_state && test_state.tasks && Array.isArray(test_state.tasks)) {
+            currentTaskId = taskId;
+            var tasks = test_state.tasks;
+            const task = tasks.find(t => t['task-id'] === taskId);
 
-    currentTaskId = taskId;
-    var tasks = test_state.tasks;
-    const task = tasks.find(t => t['task-id'] === taskId);
+            // Set modal content
+            document.getElementById('taskTitle').textContent = task['task-title'];
+            document.getElementById('taskDescription').textContent = task['task-description'];
+            document.getElementById('taskDeadline').textContent = `Deadline: ${task['task-deadline']}`;
+            document.getElementById('taskStatus').value = task['task-status'];
 
-    // Set modal content
-    document.getElementById('taskTitle').textContent = task['task-title'];
-    document.getElementById('taskDescription').textContent = task['task-description'];
-    document.getElementById('taskDeadline').textContent = `Deadline: ${task['task-deadline']}`;
-    document.getElementById('taskStatus').value = task['task-status'];
+            // Render resources
+            const resources = task['task-resources'].map(res => `<a href="${res['resource-url']}" target="_blank">${res['resource-title']}</a>`).join(', ');
+            document.getElementById('taskResources').innerHTML = `Resources: ${resources}`;
 
-    // Render resources
-    const resources = task['task-resources'].map(res => `<a href="${res['resource-url']}" target="_blank">${res['resource-title']}</a>`).join(', ');
-    document.getElementById('taskResources').innerHTML = `Resources: ${resources}`;
+            // Render subtasks
+            const subtaskList = document.getElementById('subtaskList');
+            subtaskList.innerHTML = '';
+            task.subtasks.forEach(subtask => {
+                const subtaskItem = document.createElement('div');
+                subtaskItem.className = `subtask-item ${subtask['subtask-status'] ? 'completed' : ''}`;
+                subtaskItem.innerHTML = `
+                    <span class="editable" contenteditable="true" onblur="editSubtask('${subtask['subtask-id']}', this.textContent)">${subtask['subtask-title']}</span>
+                    <div>
+                        <button class="btn btn-outline-success btn-sm" onclick="toggleSubtaskStatus('${subtask['subtask-id']}')">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="removeSubtask('${subtask['subtask-id']}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                subtaskList.appendChild(subtaskItem);
+            });
 
-    // Render subtasks
-    const subtaskList = document.getElementById('subtaskList');
-    subtaskList.innerHTML = '';
-    task.subtasks.forEach(subtask => {
-        const subtaskItem = document.createElement('div');
-        subtaskItem.className = `subtask-item ${subtask['subtask-status'] ? 'completed' : ''}`;
-        subtaskItem.innerHTML = `
-            <span class="editable" contenteditable="true" onblur="editSubtask('${subtask['subtask-id']}', this.textContent)">${subtask['subtask-title']}</span>
-            <div>
-                <button class="btn btn-outline-success btn-sm" onclick="toggleSubtaskStatus('${subtask['subtask-id']}')">
-                    <i class="fas fa-check"></i>
-                </button>
-                <button class="btn btn-outline-danger btn-sm" onclick="removeSubtask('${subtask['subtask-id']}')">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        `;
-        subtaskList.appendChild(subtaskItem);
-    });
+            // Render submissions
+            const submissionList = document.getElementById('submissionList');
+            submissionList.innerHTML = '';
+            task['task-submissions'].forEach(submission => {
+                const submissionItem = document.createElement('div');
+                submissionItem.className = 'submission-item';
+                submissionItem.innerHTML = `
+                    <div>
+                        <span class="editable" contenteditable="true" onblur="editSubmissionTitle('${submission['task-submission-id']}', this.textContent)">${submission['task-submission-title']}</span>
+                        <p>${submission['task-submission-description']}</p>
+                        <small>File: ${submission['file-name'] || 'No file attached'}</small>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-secondary" onclick="openEditSubmissionModal('${submission['task-submission-id']}')">Edit</button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="removeSubmission('${submission['task-submission-id']}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                submissionList.appendChild(submissionItem);
+            });
 
-    // Render submissions
-    const submissionList = document.getElementById('submissionList');
-    submissionList.innerHTML = '';
-    task['task-submissions'].forEach(submission => {
-        const submissionItem = document.createElement('div');
-        submissionItem.className = 'submission-item';
-        submissionItem.innerHTML = `
-            <div>
-                <span class="editable" contenteditable="true" onblur="editSubmissionTitle('${submission['task-submission-id']}', this.textContent)">${submission['task-submission-title']}</span>
-                <p>${submission['task-submission-description']}</p>
-                <small>File: ${submission['file-name'] || 'No file attached'}</small>
-            </div>
-            <div>
-                <button class="btn btn-outline-secondary" onclick="openEditSubmissionModal('${submission['task-submission-id']}')">Edit</button>
-                <button class="btn btn-outline-danger btn-sm" onclick="removeSubmission('${submission['task-submission-id']}')">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        `;
-        submissionList.appendChild(submissionItem);
-    });
-
-
-    modal.show();
+        } else {
+            console.error('Tasks not found or invalid format:', test_state);
+        }
+    })
+    .catch(error => console.error('Error loading task:', error));
 }
 
 // Change task status
@@ -403,7 +418,7 @@ function addSubtask() {
     .then(response => response.json())
     .then(data => {
         test_state = data;
-        openTaskModal(currentTaskId);
+        DisplayTaskData(currentTaskId);
         document.getElementById('newSubtaskTitle').value = ''; // Clear input
     })
     .catch(error => {
@@ -440,7 +455,7 @@ function toggleSubtaskStatus(subtaskId) {
     .then(response => response.json())
     .then(data => {
         test_state = data;
-        openTaskModal(currentTaskId);
+        DisplayTaskData(currentTaskId);
     })
     .catch(error => {
         console.error('Error adding subtask:', error);
@@ -503,7 +518,7 @@ function removeSubtask(subtaskId) {
     .then(response => response.json())
     .then(data => {
         test_state = data;
-        openTaskModal(currentTaskId);
+        DisplayTaskData(currentTaskId);
     })
     .catch(error => {
         console.error('Error adding subtask:', error);
@@ -553,7 +568,7 @@ function addSubmission() {
         .then(response => response.json())
         .then(data => {
             test_state = data;
-            openTaskModal(currentTaskId);
+            DisplayTaskData(currentTaskId);
             
             // Clear inputs
             document.getElementById('newSubmissionTitle').value = '';
@@ -615,7 +630,7 @@ function editSubmission(submissionId) {
         .then(response => response.json())
         .then(data => {
             test_state = data;
-            openTaskModal(currentTaskId);
+            DisplayTaskData(currentTaskId);
             
             // Clear inputs
             document.getElementById('newSubmissionTitle').value = '';
@@ -647,7 +662,7 @@ function removeSubmission(submissionId) {
     .then(response => response.json())
     .then(data => {
         test_state = data;
-        openTaskModal(currentTaskId);
+        DisplayTaskData(currentTaskId);
     })
     .catch(error => {
         console.error('Error adding subtask:', error);
@@ -663,7 +678,8 @@ function generateUUID() {
     });
 }
 
-renderTaskList();
+if(!task_id)
+    renderTaskList();
 
 </script>
 </body>
