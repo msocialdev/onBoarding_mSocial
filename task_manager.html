@@ -191,7 +191,7 @@
         <div id="subtaskList" class="mb-4"></div>
         <div class="add-subtask-form" style="margin-top:-16px;">
             <div class="input-group mb-3">
-                <input type="text" class="form-control" id="newSubtaskTitle" placeholder="Add Subtask" style="background-color: rgb(230, 241, 255); font-weight: 700;">
+                <input type="text" class="form-control" id="newSubtaskTitle" placeholder="Add new Subtask" style="background-color: rgb(246, 250, 255); border:1px solid #333; ">
                 <button class="btn btn-outline-primary" type="button" onclick="addSubtask()">Add</button>
             </div>
         </div>
@@ -200,16 +200,300 @@
     <div id="submissionList" class="mb-4"></div>
     <h5>Submissions</h5>
     <div class="add-submission-form">
-        <div class="input-group mb-3">
+        <button class="btn btn-outline-primary" type="button" onclick="openModal()">+ New Submission</button>
+    </div>
+</div>
+
+<!-- Add/Edit Task Modal -->
+ <!-- Modal -->
+<div id="AddSubmissionModal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalSubmissionTitle">Add Submission</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="closeModal()">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="input-group mb-3">
             <input type="text" class="form-control" id="newSubmissionTitle" placeholder="Submission Title">
-        </div>
-        <div class="input-group mb-3">
+          </div>
+          <div class="input-group mb-3">
             <textarea class="form-control" id="newSubmissionDescription" placeholder="Submission Description"></textarea>
+          </div>
+          <style>
+            .input-field {
+                margin: 20px;
+            }
+            .file-element {
+                position: relative;
+                display: flex;
+                align-items: center;
+                margin-bottom: 10px;
+                padding: 10px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+            .file-element:hover {
+                background-color: #9fffa2;
+            }
+            .file-icon {
+                margin-right: 10px;
+                font-size: 24px;
+            }
+            .file-name {
+                flex-grow: 1;
+                font-size: 16px;
+            }
+            .remove-button {
+                position: absolute;
+                right: 10px;
+                top: 10px;
+                background: none;
+                border: none;
+                color: red;
+                cursor: pointer;
+                font-size: 16px;
+            }
+            .progress-bar {
+                position: absolute;
+                bottom: 5px;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: #e0e0e0;
+                border-radius: 2px;
+                overflow: hidden;
+                opacity: 0; /* Hidden by default */
+                transition: opacity 0.2s ease;
+            }
+            .progress-bar.active {
+                opacity: 1; /* Show during upload */
+            }
+            .progress-bar-fill {
+                height: 100%;
+                background: #4caf50;
+                width: 0%;
+            }
+        </style>
+        <div class="input-field">
+            <h5>Files</h5>
+            <input type="text" name="linked_files" class="file-url-input" id="TaskLinkedFiles" style="display: none;" value="">
+            <input type="file" id="file-input" multiple style="display: none;">
+            <div id="file-upload-container"></div>
+            <div id="upload-button" class="simple_btn" style="margin-left:0px; margin-bottom:10px; margin-top:20px;">+ Add Files</div>
         </div>
-        <div class="input-group mb-3" id="file-container">
-            <input type="text" class="form-control file-url-input" id="newSubmissionFiles" placeholder="File URL" data-file-upload="true">
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
+        <script>
+            const lambdaUrl = 'https://45xhcs9iue.execute-api.ap-south-1.amazonaws.com/Release/fileupload';
+            const linkedFilesInput = document.getElementById('TaskLinkedFiles');
+            const fileUploadContainer = document.getElementById('file-upload-container');
+            const fileInput = document.getElementById('file-input');
+            const uploadButton = document.getElementById('upload-button');
+        
+            // Load existing files from the hidden input
+            function loadExistingFiles() {
+                fileUploadContainer.innerHTML = "";
+                const urls = linkedFilesInput.value.split(',').filter(Boolean);
+                urls.forEach(url => createFileElement(url));
+            }
+            function getFileNameFromUrl(url) {
+                try {
+                    // Try to create a new URL object
+                    const urlObject = new URL(url);
+                    
+                    // Use pathname to get the path and split it by '/' to extract the last part
+                    const pathSegments = urlObject.pathname.split('/');
+                    
+                    // Return the last segment as the file name
+                    return pathSegments[pathSegments.length - 1];
+                } catch (error) {
+                    // If an error occurs (e.g., invalid URL), return the input string
+                    return url;
+                }
+            }
+
+            function DecodeText(str)
+            {
+                var newstr = decodeURIComponent(str).replace("%20", ' ');
+                console.log(newstr);
+                return newstr;
+            }
+
+        
+            function createFileElement(fileData) {
+                const fileDiv = document.createElement('div');
+                fileDiv.className = 'file-element';
+
+                fileDiv.onclick = () => {
+                    window.open(fileData, '_blank');
+                };
+        
+                const fileName = document.createElement('span');
+                fileName.className = 'file-name';
+                fileName.textContent = DecodeText(getFileNameFromUrl(fileData));
+                fileName.dataset.url = DecodeText(fileData);
+        
+                const fileIcon = document.createElement('i');
+                fileIcon.className = getFileIcon(DecodeText(fileData)); // Set the icon class
+                fileIcon.className += ' file-icon'; // Add styling class
+        
+                const removeButton = document.createElement('div');
+                removeButton.innerHTML = '<i class="fas fa-times"></i>'; // Font Awesome close icon
+                removeButton.className = 'remove-button';
+                
+                const progressBar = document.createElement('div');
+                progressBar.className = 'progress-bar';
+                const progressFill = document.createElement('div');
+                progressFill.className = 'progress-bar-fill';
+                progressBar.appendChild(progressFill);
+        
+                removeButton.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    deleteFileFromServer(fileData).then(() => {
+                        fileUploadContainer.removeChild(fileDiv);
+                        updateHiddenInput();
+                    });
+                };
+        
+                fileDiv.appendChild(fileIcon);
+                fileDiv.appendChild(fileName);
+                fileDiv.appendChild(removeButton);
+                fileDiv.appendChild(progressBar);
+                fileUploadContainer.appendChild(fileDiv);
+                
+                return { fileDiv, progressFill }; // Return elements for updating progress
+            }
+        
+            function getFileIcon(fileName) {
+                const extension = fileName.split('.').pop().toLowerCase();
+                switch (extension) {
+                    case 'jpg':
+                    case 'jpeg':
+                    case 'png':
+                    case 'gif':
+                        return 'fas fa-file-image'; // Font Awesome image icon
+                    case 'pdf':
+                        return 'fas fa-file-pdf'; // Font Awesome PDF icon
+                    case 'doc':
+                    case 'docx':
+                        return 'fas fa-file-word'; // Font Awesome Word document icon
+                    case 'xls':
+                    case 'xlsx':
+                        return 'fas fa-file-excel'; // Font Awesome Excel document icon
+                    case 'ppt':
+                    case 'pptx':
+                        return 'fas fa-file-powerpoint'; // Font Awesome PowerPoint icon
+                    case 'mp4':
+                    case 'avi':
+                    case 'mov':
+                        return 'fas fa-file-video'; // Font Awesome video icon
+                    case 'mp3':
+                    case 'wav':
+                        return 'fas fa-file-audio'; // Font Awesome audio icon
+                    case 'zip':
+                    case 'rar':
+                        return 'fas fa-file-archive'; // Font Awesome archive icon
+                    default:
+                        return 'fas fa-file'; // Default file icon for other file types
+                }
+            }
+        
+            async function getSignedUrl(file) {
+                const response = await fetch(`${lambdaUrl}?file_name=${file.name}&file_type=${file.type}`);
+                const data = await response.json();
+                return data.upload_url;
+            }
+        
+            async function deleteFileFromServer(fileUrl) {
+                const url = `${lambdaUrl}?url=${encodeURIComponent(fileUrl)}`;
+                await fetch(url, { method: 'GET' });
+            }
+        
+
+            async function uploadFiles(files) {
+                for (const file of files) {
+                    
+                    const { fileDiv, progressFill } = createFileElement(file.name); // Create file element and get elements for progress update
+                    progressFill.parentElement.classList.add('active'); // Show progress bar
+                    
+                    const signedUrl = await getSignedUrl(file);
+
+                    // Perform the file upload
+                    const uploadResult = await uploadFileToS3(file, signedUrl, progressFill, fileDiv.querySelector(".file-name"));
+                    if (uploadResult) {
+                        updateHiddenInput(); // Update hidden input after successful upload
+                    }
+                }
+            }
+
+            async function uploadFileToS3(file, signedUrl, progressFill, fileNameDiv) {
+                return new Promise((resolve, reject) => {
+                    console.log(signedUrl);
+                    const xhr = new XMLHttpRequest();
+                    xhr.open("PUT", signedUrl, true);
+                    xhr.setRequestHeader("Content-Type", file.type);
+
+                    xhr.upload.onprogress = (event) => {
+                        if (event.lengthComputable) {
+                            const percentComplete = (event.loaded / event.total) * 100;
+                            progressFill.style.width = percentComplete + '%';
+                        }
+                    };
+
+                    xhr.onload = () => {
+                        if (xhr.status === 200) {
+                            resolve(true); // Upload successful
+                            progressFill.parentElement.classList.remove("active");
+                            fileNameDiv.dataset.url = constructFinalUrl(signedUrl);
+                            fileNameDiv.parentElement.onclick = () => {
+                                window.open(fileNameDiv.dataset.url, '_blank');
+                            };
+                        } else {
+                            reject(new Error(`Upload failed with status: ${xhr.status}`));
+                        }
+                    };
+
+                    xhr.onerror = () => {
+                        reject(new Error("Upload failed due to a network error."));
+                    };
+
+                    xhr.send(file);
+                });
+            }
+
+            function constructFinalUrl(signedUrl) {
+                const urlObject = new URL(DecodeText(signedUrl));
+                // Construct the final URL based on the bucket and key
+                return `https://${urlObject.host}${urlObject.pathname}`;
+            }
+        
+            function updateHiddenInput() {
+                const uploadedFiles = Array.from(fileUploadContainer.children)
+                    .map(fileDiv => fileDiv.querySelector('.file-name').dataset.url); // Assuming the span contains the URL
+                linkedFilesInput.value = uploadedFiles.join(',');
+            }
+        
+            uploadButton.onclick = () => {
+                fileInput.click();
+            };
+        
+            fileInput.onchange = (event) => {
+                const files = event.target.files;
+                uploadFiles(files);
+            };
+        
+            loadExistingFiles();
+        </script>
         </div>
-        <button class="btn btn-outline-primary" type="button" onclick="addSubmission()">Add Submission</button>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" onclick="addSubmission()">Add & Save Submission</button>
+        </div>
+      </div>
     </div>
 </div>
 
@@ -219,6 +503,16 @@
 const API_URL = 'https://irdr4lzsd62kn2jheybijyai7e0vqfkt.lambda-url.ap-south-1.on.aws'; // Replace with your Lambda function URL
 const email = new URLSearchParams(window.location.search).get('email');
 const task_id = new URLSearchParams(window.location.search).get('taskid');
+
+// Open Add submission Modal
+function openModal() {
+    $('#AddSubmissionModal').modal('show');
+}
+
+// Hide the modal
+function closeModal() {
+    $('#AddSubmissionModal').modal('hide');
+}
 
 if(task_id)
 {
@@ -528,6 +822,10 @@ function removeSubtask(subtaskId) {
 
 //Add new submission
 function addSubmission() {
+    if(!confirm("You cannot edit or delete a submission once added, are your sure you wanna submit?"))
+        return;
+
+    console.log("about to submit the submission");
     const submissionTitle = document.getElementById('newSubmissionTitle').value;
     const submissionDescription = document.getElementById('newSubmissionDescription').value;
     const submissionFilesInput = document.querySelector('.file-url-input'); // Get all file inputs with the class 'file-url-input'
