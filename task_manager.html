@@ -197,8 +197,8 @@
         </div>
     </div>
     <hr/>
-    <div id="submissionList" class="mb-4"></div>
     <h5>Submissions</h5>
+    <div id="submissionList" class="mb-4"></div>
     <div class="add-submission-form">
         <button class="btn btn-outline-primary" type="button" onclick="openModal()">+ New Submission</button>
     </div>
@@ -354,10 +354,12 @@
                 removeButton.onclick = (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    deleteFileFromServer(fileData).then(() => {
-                        fileUploadContainer.removeChild(fileDiv);
-                        updateHiddenInput();
-                    });
+                    fileUploadContainer.removeChild(fileDiv);
+                    updateHiddenInput();
+                    // deleteFileFromServer(fileData).then(() => {
+                    //     fileUploadContainer.removeChild(fileDiv);
+                    //     updateHiddenInput();
+                    // });
                 };
         
                 fileDiv.appendChild(fileIcon);
@@ -404,15 +406,15 @@
             }
         
             async function getSignedUrl(file) {
-                const response = await fetch(`${lambdaUrl}?file_name=${file.name}&file_type=${file.type}`);
+                const response = await fetch(`${lambdaUrl}?file_name=${file.name}&file_type=${file.type}&directory=${email}`);
                 const data = await response.json();
                 return data.upload_url;
             }
         
-            async function deleteFileFromServer(fileUrl) {
-                const url = `${lambdaUrl}?url=${encodeURIComponent(fileUrl)}`;
-                await fetch(url, { method: 'GET' });
-            }
+            // async function deleteFileFromServer(fileUrl) {
+            //     const url = `${lambdaUrl}?url=${encodeURIComponent(fileUrl)}`;
+            //     await fetch(url, { method: 'GET' });
+            // }
         
 
             async function uploadFiles(files) {
@@ -601,11 +603,11 @@ function DisplayTaskData(taskId) {
             // Set modal content
             document.getElementById('taskTitle').textContent = task['task-title'];
             document.getElementById('taskDescription').textContent = task['task-description'];
-            document.getElementById('taskDeadline').textContent = `Deadline: ${task['task-deadline']}`;
+            document.getElementById('taskDeadline').textContent = `Deadline: ${task['task-end-time']}`;
             document.getElementById('taskStatus').value = task['task-status'];
 
             // Render resources
-            const resources = task['task-resources'].map(res => `<a href="${res['resource-url']}" target="_blank">${res['resource-title']}</a>`).join(', ');
+            const resources = task['task-resources'].map(res => `<br><a href="${res}" target="_blank">${getFileNameFromUrl(res)}</a>`).join(', ');
             document.getElementById('taskResources').innerHTML = `Resources: ${resources}`;
 
             // Render subtasks
@@ -636,17 +638,20 @@ function DisplayTaskData(taskId) {
                 submissionItem.className = 'submission-item';
                 submissionItem.innerHTML = `
                     <div>
-                        <span class="editable" contenteditable="true" onblur="editSubmissionTitle('${submission['task-submission-id']}', this.textContent)">${submission['task-submission-title']}</span>
+                        <span class="editable" contenteditable="true" onblur="editSubmissionTitle('${submission['task-submission-id']}', this.textContent)">
+                            ${submission['task-submission-title']}
+                        </span>
                         <p>${submission['task-submission-description']}</p>
-                        <small>File: ${submission['file-name'] || 'No file attached'}</small>
-                    </div>
-                    <div>
-                        <button class="btn btn-outline-secondary" onclick="openEditSubmissionModal('${submission['task-submission-id']}')">Edit</button>
-                        <button class="btn btn-outline-danger btn-sm" onclick="removeSubmission('${submission['task-submission-id']}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <div>
+                            ${submission['task-submission-files'].map(res => `<br><a href="${res}" target="_blank">${getFileNameFromUrl(res)}</a>`).join('')}
+                            <button class="btn btn-outline-secondary" onclick="openEditSubmissionModal('${submission['task-submission-id']}')">Edit</button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="removeSubmission('${submission['task-submission-id']}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
                 `;
+
                 submissionList.appendChild(submissionItem);
             });
 
@@ -837,11 +842,12 @@ function addSubmission() {
     fileUrls.forEach(url => {
         const fileUrl = url.trim(); // Trim to remove any extra spaces
         if (fileUrl) {
-            submissionFiles.push({
-                "file-id": fileUrl,
-                "file-name": getFileNameFromUrl(fileUrl), // Assume a helper function to extract file name
-                "file-url": fileUrl
-            });
+            submissionFiles.push(fileUrl);
+            // submissionFiles.push({
+            //     "file-id": fileUrl,
+            //     "file-name": getFileNameFromUrl(fileUrl), // Assume a helper function to extract file name
+            //     "file-url": fileUrl
+            // });
         }
     });
 
@@ -898,11 +904,7 @@ function editSubmission(submissionId) {
     submissionFilesInputs.forEach(input => {
         const fileUrl = input.value;
         if (fileUrl) {
-            submissionFiles.push({
-                "file-id": fileUrl,
-                "file-name": getFileNameFromUrl(fileUrl), // Assume a helper function to extract file name
-                "file-url": fileUrl
-            });
+            submissionFiles.push(fileUrl);
         }
     });
 
