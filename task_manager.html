@@ -638,16 +638,12 @@ function DisplayTaskData(taskId) {
                 submissionItem.className = 'submission-item';
                 submissionItem.innerHTML = `
                     <div>
-                        <span class="editable" contenteditable="true" onblur="editSubmissionTitle('${submission['task-submission-id']}', this.textContent)">
+                        <span>
                             ${submission['task-submission-title']}
                         </span>
                         <p>${submission['task-submission-description']}</p>
                         <div>
-                            ${submission['task-submission-files'].map(res => `<br><a href="${res}" target="_blank">${getFileNameFromUrl(res)}</a>`).join('')}
-                            <button class="btn btn-outline-secondary" onclick="openEditSubmissionModal('${submission['task-submission-id']}')">Edit</button>
-                            <button class="btn btn-outline-danger btn-sm" onclick="removeSubmission('${submission['task-submission-id']}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            Files: ${submission['task-submission-files'].map(res => `<br><a href="${res}" target="_blank">${getFileNameFromUrl(res)}</a>`).join('')}
                         </div>
                     </div>
                 `;
@@ -893,81 +889,81 @@ function getFileNameFromUrl(url) {
 }
 
 // Edit submission title
-function editSubmission(submissionId) {
-    const submissionTitle = document.getElementById('newSubmissionTitle').value;
-    const submissionDescription = document.getElementById('newSubmissionDescription').value;
-    const submissionFilesInputs = document.querySelectorAll('.file-url-input'); // Get all file inputs with the class 'file-url-input'
+// function editSubmission(submissionId) {
+//     const submissionTitle = document.getElementById('newSubmissionTitle').value;
+//     const submissionDescription = document.getElementById('newSubmissionDescription').value;
+//     const submissionFilesInputs = document.querySelectorAll('.file-url-input'); // Get all file inputs with the class 'file-url-input'
     
-    const submissionFiles = [];
+//     const submissionFiles = [];
 
-    // Loop through each file input and build the task-submission-files array
-    submissionFilesInputs.forEach(input => {
-        const fileUrl = input.value;
-        if (fileUrl) {
-            submissionFiles.push(fileUrl);
-        }
-    });
+//     // Loop through each file input and build the task-submission-files array
+//     submissionFilesInputs.forEach(input => {
+//         const fileUrl = input.value;
+//         if (fileUrl) {
+//             submissionFiles.push(fileUrl);
+//         }
+//     });
 
-    if (submissionTitle && submissionDescription) {
-        fetch(`${API_URL}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                "action": "update-submission",
-                "task-id": currentTaskId,
-                "submission-id":submissionId,
-                "email": email,
-                "submission": {
-                    "task-submission-id": generateUUID(),
-                    "task-submission-title": submissionTitle,
-                    "task-submission-description": submissionDescription,
-                    "task-submission-files": submissionFiles
-                }
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            test_state = data;
-            DisplayTaskData(currentTaskId);
+//     if (submissionTitle && submissionDescription) {
+//         fetch(`${API_URL}`, {
+//             method: 'PUT',
+//             headers: {
+//                 'Content-Type': 'application/json'
+//             },
+//             body: JSON.stringify({
+//                 "action": "update-submission",
+//                 "task-id": currentTaskId,
+//                 "submission-id":submissionId,
+//                 "email": email,
+//                 "submission": {
+//                     "task-submission-id": generateUUID(),
+//                     "task-submission-title": submissionTitle,
+//                     "task-submission-description": submissionDescription,
+//                     "task-submission-files": submissionFiles
+//                 }
+//             })
+//         })
+//         .then(response => response.json())
+//         .then(data => {
+//             test_state = data;
+//             DisplayTaskData(currentTaskId);
             
-            // Clear inputs
-            document.getElementById('newSubmissionTitle').value = '';
-            document.getElementById('newSubmissionDescription').value = '';
+//             // Clear inputs
+//             document.getElementById('newSubmissionTitle').value = '';
+//             document.getElementById('newSubmissionDescription').value = '';
             
-            // Remove all file-url-input fields (assuming this is desired after submission)
-            document.querySelectorAll('.file-url-input').forEach(input => input.remove());
-        })
-        .catch(error => {
-            console.error('Error adding submission:', error);
-        });
-    }
-}
+//             // Remove all file-url-input fields (assuming this is desired after submission)
+//             document.querySelectorAll('.file-url-input').forEach(input => input.remove());
+//         })
+//         .catch(error => {
+//             console.error('Error adding submission:', error);
+//         });
+//     }
+// }
 
-// Remove submission
-function removeSubmission(submissionId) {
-    fetch(`${API_URL}`, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            "action":"delete-submission",
-            "task-id":currentTaskId,
-            "submission-id":submissionId,
-            "email":email
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        test_state = data;
-        DisplayTaskData(currentTaskId);
-    })
-    .catch(error => {
-        console.error('Error adding subtask:', error);
-    });
-}
+// // Remove submission
+// function removeSubmission(submissionId) {
+//     fetch(`${API_URL}`, {
+//         method: 'DELETE',
+//         headers: {
+//             'Content-Type': 'application/json'
+//         },
+//         body: JSON.stringify({
+//             "action":"delete-submission",
+//             "task-id":currentTaskId,
+//             "submission-id":submissionId,
+//             "email":email
+//         })
+//     })
+//     .then(response => response.json())
+//     .then(data => {
+//         test_state = data;
+//         DisplayTaskData(currentTaskId);
+//     })
+//     .catch(error => {
+//         console.error('Error adding subtask:', error);
+//     });
+// }
 
  // Utility Functions
 function generateUUID() {
