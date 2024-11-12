@@ -413,7 +413,7 @@
                 }
             
                 async function getSignedUrl(file) {
-                    const response = await fetch(`${lambdaUrl}?file_name=${file.name}&file_type=${file.type}`);
+                    const response = await fetch(`${lambdaUrl}?file_name=${file.name}&file_type=${file.type}&directory=Admin`);
                     const data = await response.json();
                     return data.upload_url;
                 }
