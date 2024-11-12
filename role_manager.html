@@ -361,10 +361,12 @@
                     removeButton.onclick = (e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        deleteFileFromServer(fileData).then(() => {
-                            fileUploadContainer.removeChild(fileDiv);
-                            updateHiddenInput();
-                        });
+                        fileUploadContainer.removeChild(fileDiv);
+                        updateHiddenInput();
+                        // deleteFileFromServer(fileData).then(() => {
+                        //     fileUploadContainer.removeChild(fileDiv);
+                        //     updateHiddenInput();
+                        // });
                     };
             
                     fileDiv.appendChild(fileIcon);
@@ -416,10 +418,10 @@
                     return data.upload_url;
                 }
             
-                async function deleteFileFromServer(fileUrl) {
-                    const url = `${lambdaUrl}?url=${encodeURIComponent(fileUrl)}`;
-                    await fetch(url, { method: 'GET' });
-                }
+                // async function deleteFileFromServer(fileUrl) {
+                //     const url = `${lambdaUrl}?url=${encodeURIComponent(fileUrl)}`;
+                //     await fetch(url, { method: 'GET' });
+                // }
             
 
                 async function uploadFiles(files) {
