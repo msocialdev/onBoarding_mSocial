@@ -544,6 +544,7 @@
 const API_URL = 'https://irdr4lzsd62kn2jheybijyai7e0vqfkt.lambda-url.ap-south-1.on.aws'; // Replace with your Lambda function URL
 const email = new URLSearchParams(window.location.search).get('email');
 const task_id = new URLSearchParams(window.location.search).get('taskid');
+let userTimezone;
 
 // Open Add submission Modal
 function openModal() {
@@ -572,6 +573,38 @@ let test_state = {};
 
 let currentTaskId = null;
 
+function parseEncodedTime(testStartDate, encodedTime) {
+    const [day, hourFraction] = encodedTime.split(':').map(Number);
+    const hours = Math.floor(hourFraction);
+    const minutes = Math.round((hourFraction - hours) * 60);
+
+    const startDateInUserTimezone = new Date(
+        new Intl.DateTimeFormat('en-US', {
+            timeZone: userTimezone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+        }).format(new Date(testStartDate))
+    );
+
+    // Apply the day offset, hour, and minute to the converted date
+    startDateInUserTimezone.setDate(startDateInUserTimezone.getDate() + day);
+    startDateInUserTimezone.setHours(hours, minutes, 0, 0);
+
+     // Format date to 'YYYY-MM-DD HH:mm'
+     const formattedDate = startDateInUserTimezone.toLocaleString('en-GB', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: userTimezone
+    }).replace(',', '');
+
+    return formattedDate;
+}
+
 function renderTaskList() {
     fetch(`${API_URL}?email=${email}`, {
         method: 'GET',
@@ -599,7 +632,7 @@ function renderTaskList() {
             const taskList = document.querySelector('.task-list');
             taskList.innerHTML = '';
             var tasks = test_state.tasks;
-            
+            userTimezone = test_state["candidate-timezone"];
             tasks.forEach(task => {
                 if(task['task-agreed'])
                 {
@@ -618,7 +651,7 @@ function renderTaskList() {
                         <div>
                             <span class="badge more-info">${task.subtasks.filter(st => !st['subtask-status']).length} Pending Subtasks</span>
                             <span class="badge more-info">${task['task-submissions']?task['task-submissions'].length:0} Submissions</span>
-                            <span class="badge more-info">Deadline: ${task['task-end-time']}</span>
+                            <span class="badge more-info">Deadline: ${parseEncodedTime(test_state["test-start-time"], task['task-end-time'])}</span>
                             <span class="task-status badge bg-primary">${task['task-status']}</span>
                         </div>
                     `;
@@ -670,11 +703,12 @@ function DisplayTaskData(taskId) {
             currentTaskId = taskId;
             var tasks = test_state.tasks;
             const task = tasks.find(t => t['task-id'] === taskId);
+            userTimezone = test_state["candidate-timezone"];
 
             // Set modal content
             document.getElementById('taskTitle').textContent = task['task-title'];
             document.getElementById('taskDescription').textContent = task['task-description'];
-            document.getElementById('taskDeadline').innerHTML = `<hr><b>Deadline:</b> ${task['task-end-time']}`;
+            document.getElementById('taskDeadline').innerHTML = `<hr><b>Deadline:</b> ${parseEncodedTime(test_state["test-start-time"], task['task-end-time'])}`;
             document.getElementById('taskStatus').value = task['task-status'];
 
             // Render resources
@@ -949,6 +983,8 @@ function addSubmission() {
             
             // Remove all file-url-input fields (assuming this is desired after submission)
             submissionFilesInput.value = "";
+            fileUploadContainer.innerHTML = "";
+            closeModal();
         })
         .catch(error => {
             console.error('Error adding submission:', error);
