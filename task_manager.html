@@ -32,6 +32,18 @@
             box-sizing: border-box;
         }
 
+        .non-agreed
+        {
+            background-color: #edffed !important;
+        }
+        .non-agreed:hover
+        {
+            background-color: #deffde !important;
+            border: 1px solid #dee2e6 !important;
+            box-sizing: border-box;
+            cursor: auto !important;
+        }
+
         .task-item div {
             display: flex;
             flex-wrap: wrap;        /* Ensure that content wraps if needed */
@@ -605,6 +617,27 @@ function parseEncodedTime(testStartDate, encodedTime) {
     return formattedDate;
 }
 
+function parseEncodedTime_ToDateObject(testStartDate, encodedTime) {
+    const [day, hourFraction] = encodedTime.split(':').map(Number);
+    const hours = Math.floor(hourFraction);
+    const minutes = Math.round((hourFraction - hours) * 60);
+
+    const startDateInUserTimezone = new Date(
+        new Intl.DateTimeFormat('en-US', {
+            timeZone: userTimezone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+        }).format(new Date(testStartDate))
+    );
+
+    // Apply the day offset, hour, and minute to the converted date
+    startDateInUserTimezone.setDate(startDateInUserTimezone.getDate() + day);
+    startDateInUserTimezone.setHours(hours, minutes, 0, 0);
+
+    return startDateInUserTimezone;
+}
+
 function renderTaskList() {
     fetch(`${API_URL}?email=${email}`, {
         method: 'GET',
@@ -634,7 +667,7 @@ function renderTaskList() {
             var tasks = test_state.tasks;
             userTimezone = test_state["candidate-timezone"];
             tasks.forEach(task => {
-                if(task['task-agreed'])
+                if(task['task-agreed'] == 1)
                 {
                     const taskItem = document.createElement('div');
                     taskItem.onclick = function() {
@@ -656,6 +689,47 @@ function renderTaskList() {
                         </div>
                     `;
                     taskList.appendChild(taskItem);
+                }
+                else if(task['task-agreed'] == 0)
+                {
+                    const currentUTC = new Date();
+
+                    // Convert UTC time to the user's time zone
+                    const currentTime = new Date(new Intl.DateTimeFormat('en-US', {
+                        timeZone: userTimezone,
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    }).format(currentUTC));
+
+                    // Parse the start and end times
+                    const taskStartTime = parseEncodedTime_ToDateObject(test_state["test-start-time"], task['task-start-time']);
+                    const taskEndTime = parseEncodedTime_ToDateObject(test_state["test-start-time"], task['task-end-time']);
+
+                    console.log(currentTime,taskStartTime,taskEndTime);
+                    
+                    if (currentTime >= taskStartTime && currentTime <= taskEndTime) {
+                        console.log("Current time is between task start and end time.");
+                        const taskItem = document.createElement('div');
+                        taskItem.className = 'task-item non-agreed';
+                        taskItem.innerHTML = `
+                            <div>
+                                <strong>${task['task-title']}</strong>
+                            </div>
+                            <div>
+                                <span class="badge more-info">Optional Task - Gain extra points</span>
+                                <button class="badge more-info" style="background-color:green;border:none;" onclick="updateTaskAgreedStatus('${task['task-id']}', 1)">Takeup Task</button>
+                                <button class="badge more-info" style="background-color:red;border:none;" onclick="updateTaskAgreedStatus('${task['task-id']}', -1)">Leave Task</button>
+                            </div>
+                        `;
+
+                        taskList.appendChild(taskItem);
+                    } else {
+                        console.log("Current time is outside the task time range.");
+                    }
                 }
             });
         } else {
@@ -789,6 +863,29 @@ function changeStatus() {
     })
     .catch(error => {
         console.error('Error updating task status:', error);
+    });
+}
+
+// Change task status
+function updateTaskAgreedStatus(task_id,status) {
+    fetch(`${API_URL}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            "action": "update-task-agreed",
+            "task-id": task_id,
+            "email": email,
+            "task-agreed":status
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        renderTaskList();
+    })
+    .catch(error => {
+        console.error('Error updating task agreed status:', error);
     });
 }
 
