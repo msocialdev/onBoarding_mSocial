@@ -113,7 +113,7 @@ class DraggableTimeline {
     renderBar(container, task, index, isSubtask = false) {
         const bar = document.createElement('div');
         bar.classList.add('timeline-bar');
-        bar.style.backgroundColor = isSubtask ? '#FF5722' : '#4CAF50';
+        bar.style.backgroundColor = isSubtask ? '#5C4C90DD' : '#4CAF50DD';
         bar.innerText = task.label;
         bar.title = `Title: ${task.label}\nStart: ${task.start.toLocaleString()}\nEnd: ${task.end.toLocaleString()}\nDeadline: ${task.deadline ? task.deadline.toLocaleString() : 'N/A'}`;
         let deadline;

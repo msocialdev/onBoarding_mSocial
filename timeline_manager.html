@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,9 @@
         body {
             font-family: Arial, sans-serif;
             margin: 0px;
+            -webkit-user-select: none; /* Safari */
+            -ms-user-select: none; /* IE 10 and IE 11 */
+            user-select: none; /* Standard syntax */
         }
 
         .timeline-wrapper {
@@ -15,16 +19,17 @@
             flex-direction: column;
             height: auto;
             border: 1px solid #ccc;
-            padding-top:40px;
+            padding-top: 40px;
         }
 
         .timeline-header {
             display: flex;
             border-bottom: 2px solid #ccc;
             background: #f9f9f9;
-            position: fixed; /* To position hour markers */
-            width:100%;
-            top:10px;
+            position: fixed;
+            /* To position hour markers */
+            width: 100%;
+            top: 10px;
             z-index: 100;
         }
 
@@ -65,18 +70,20 @@
         }
 
         .day-grid {
-            background-color: rgba(0, 0, 0, 0.05); /* Dark vertical lines for days */
+            background-color: rgba(0, 0, 0, 0.05);
+            /* Dark vertical lines for days */
         }
 
         .hour-grid {
-            background-color: rgba(0, 0, 0, 0.01); /* Light vertical lines for hours */
+            background-color: rgba(0, 0, 0, 0.01);
+            /* Light vertical lines for hours */
         }
 
         .timeline-task-row {
             position: relative;
             height: 30px;
             margin-bottom: 5px;
-            margin-top:10px;
+            margin-top: 10px;
         }
 
         .timeline-bar {
@@ -93,12 +100,15 @@
             min-width: 20px;
             font-size: 12px;
             font-weight: bold;
-            overflow: hidden; /* Hide overflow */
-            text-overflow: ellipsis; /* Ellipsis for overflow text */
-            white-space: nowrap; /* Prevent text from wrapping */
+            overflow: hidden;
+            /* Hide overflow */
+            text-overflow: ellipsis;
+            /* Ellipsis for overflow text */
+            white-space: nowrap;
+            /* Prevent text from wrapping */
         }
-        .deadline-bar
-        { 
+
+        .deadline-bar {
             position: absolute;
             height: 34px;
             border-radius: 4px;
@@ -114,8 +124,8 @@
             border: 2px solid red;
             color: red;
             background-color: rgba(255, 0, 0, 0.315);
-            z-index:-1;
-            top:-2px;
+            z-index: -1;
+            top: -2px;
         }
 
         .drag-handle {
@@ -158,62 +168,212 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/interact.js/1.10.11/interact.min.js"></script>
     <script src="DraggableTimeline.js"></script>
 </head>
+
 <body>
     <div id="timeline-container"></div>
-    <button onclick="addNewTask()">Add New Task</button>
 
     <script>
-        const timeline = new DraggableTimeline('#timeline-container', {
-            startTime: new Date('2024-10-01T00:00:00'),
-            endTime: new Date('2024-10-08T00:00:00'),
-            tasks: [
-                {
-                    label: 'Task 1',
-                    start: new Date('2024-10-02T08:00:00'),
-                    end: new Date('2024-10-05T17:00:00'),
-                    deadline: new Date('2024-10-06T00:00:00'),
-                    subtasks: [
-                        { label: 'Subtask 1.1', start: new Date('2024-10-03T09:00:00'), end: new Date('2024-10-04T12:00:00') },
-                        { label: 'Subtask 1.2', start: new Date('2024-10-04T10:00:00'), end: new Date('2024-10-05T10:00:00') }
-                    ]
-                },
-                {
-                    label: 'Task 2',
-                    start: new Date('2024-10-04T09:00:00'),
-                    end: new Date('2024-10-07T15:00:00'),
-                    deadline: new Date('2024-10-07T00:00:00'),
-                    subtasks: [
-                        { label: 'Subtask 2.1', start: new Date('2024-10-05T10:00:00'), end: new Date('2024-10-06T14:00:00') }
-                    ]
-                }
-            ],
-            colors: ['#4CAF50', '#FF5722'],
-            onDragStart: (event, task, index) => {
-                console.log('Drag start:', task);
-            },
-            onDragEnd: (event, task, index) => {
-                console.log('Drag end:', task);
-            },
-            onResizeStart: (event, task, index) => {
-                console.log('Resize start:', task);
-            },
-            onResizeEnd: (event, task, index) => {
-                console.log('Resize end:', task);
-            }
-        });
+        let timeline;
+        let userTimezone;
+        const email = new URLSearchParams(window.location.search).get('email');
+        let testStartTime;
 
-        function addNewTask() {
-            const newTask = {
-                label: 'New Task',
-                start: new Date(),
-                end: new Date(new Date().getTime() + 2 * 24 * 60 * 60 * 1000), // 2 days later
-                deadline: new Date(new Date().getTime() + 3 * 24 * 60 * 60 * 1000), // 3 days later
-                subtasks: [
-                    { label: 'Subtask 3.1', start: new Date('2024-10-05T10:00:00'), end: new Date('2024-10-06T10:00:00') } // 1 hour later
-                ]
-            };
-            timeline.addTask(newTask);
+        function InitTimeline(startTime, days) {
+            const tstart = new Date(startTime);
+            const tend = new Date(new Date(startTime).getTime() + days * 24 * 60 * 60 * 1000); // End time
+            console.log(tstart);
+
+            timeline = new DraggableTimeline('#timeline-container', {
+                startTime: tstart,
+                endTime: tend,
+                tasks: [],
+                colors: ['#4CAF50', '#FF5722'],
+                onDragStart: (event, task, index) => {
+                    console.log('Drag start:', task);
+                },
+                onDragEnd: (event, task, index) => {
+                    plannedStart = encodeTime(task.start, testStartTime);
+                    plannedEnd = encodeTime(task.end, testStartTime);
+                    if (task["subtaskid"]) {
+                        updateSubTaskTime(task["taskid"], task["subtaskid"], plannedStart, plannedEnd)
+                    }
+                    else {
+                        updateTaskTime(task["taskid"], plannedStart, plannedEnd)
+                    }
+                },
+                onResizeStart: (event, task, index) => {
+                    console.log('Resize start:', task);
+                },
+                onResizeEnd: (event, task, index) => {
+                    //paste same as onDragEnd.
+                    plannedStart = encodeTime(task.start, testStartTime);
+                    plannedEnd = encodeTime(task.end, testStartTime);
+                    if (task["subtaskid"]) {
+                        updateSubTaskTime(task["taskid"], task["subtaskid"], plannedStart, plannedEnd)
+                    }
+                    else {
+                        updateTaskTime(task["taskid"], plannedStart, plannedEnd)
+                    }
+                }
+            });
         }
+
+        // Initialize timeline with tasks from the server
+        function AddTasks() {
+            const API_URL = 'https://irdr4lzsd62kn2jheybijyai7e0vqfkt.lambda-url.ap-south-1.on.aws';
+
+            if (!email) {
+                console.error("No email provided in URL.");
+                return;
+            }
+
+            fetch(`${API_URL}?email=${email}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    console.log("test:" + parseEncodedTime(data["test-start-time"], data.tasks[0]["task-planned-start"]));
+                    testStartTime = data["test-start-time"];
+                    userTimezone = data["candidate-timezone"];
+                    const timelineTasks = data.tasks.map(task => ({
+                        label: task["task-title"],
+                        start: parseEncodedTime(data["test-start-time"], task["task-planned-start"]),
+                        end: parseEncodedTime(data["test-start-time"], task["task-planned-end"]),
+                        taskid: task["task-id"],
+                        deadline: parseEncodedTime(data["test-start-time"], task["task-end-time"]),
+                        subtasks: task.subtasks.map(subtask => ({
+                            label: subtask["subtask-title"],
+                            start: parseEncodedTime(data["test-start-time"], subtask["subtask-planned-start"]),
+                            end: parseEncodedTime(data["test-start-time"], subtask["subtask-planned-end"]),
+                            subtaskid: subtask["subtask-id"],
+                            taskid: task["task-id"],
+                            deadline: parseEncodedTime(data["test-start-time"], task["task-end-time"]),
+                        }))
+                    }));
+
+                    InitTimeline(parseEncodedTime(data["test-start-time"], "0:0"), 6);
+
+                    // Store data on timeline instance for future reference
+                    timeline.data = data;
+
+                    // Add each task individually to avoid `addTask` issues
+                    timelineTasks.forEach(task => timeline.addTask(task));
+                })
+                .catch(error => {
+                    console.error("Error fetching tasks:", error);
+                });
+        }
+
+        // Utility function to convert encoded time (e.g., "0:8.3") to Date object based on start date
+        function parseEncodedTime(testStartDate, encodedTime) {
+            const [day, hourFraction] = encodedTime.split(':').map(Number);
+            const hours = Math.floor(hourFraction);
+            const minutes = Math.round((hourFraction - hours) * 60);
+
+            const startDateInUserTimezone = new Date(
+                new Intl.DateTimeFormat('en-US', {
+                    timeZone: userTimezone,
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                }).format(new Date(testStartDate))
+            );
+
+            // Apply the day offset, hour, and minute to the converted date
+            startDateInUserTimezone.setDate(startDateInUserTimezone.getDate() + day);
+            startDateInUserTimezone.setHours(hours, minutes, 0, 0);
+
+            return startDateInUserTimezone;
+        }
+
+        // Utility function to encode Date object back to encoded time (e.g., "0:8.3")
+        function encodeTime(date, testStartDate) {
+            const startDateInUserTimezone = new Date(
+                new Intl.DateTimeFormat('en-US', {
+                    timeZone: userTimezone,
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                }).format(new Date(testStartDate))
+            );
+            startDateInUserTimezone.setHours(0,0,0,0);
+            // Calculate the difference in days and hours between date and start date
+            const dayDifference = Math.floor((date - startDateInUserTimezone) / (24 * 60 * 60 * 1000));
+            const hour = date.getHours();
+            const minuteFraction = (date.getMinutes() / 60).toFixed(2).substring(1);
+
+            return `${dayDifference}:${hour}${minuteFraction}`;
+        }
+
+        async function updateTaskTime(taskId, plannedStart, plannedEnd) {
+            const url = 'https://irdr4lzsd62kn2jheybijyai7e0vqfkt.lambda-url.ap-south-1.on.aws/';
+            const body = {
+                action: "update-task-time",
+                "task-id": taskId,
+                "email": email,
+                "planned-start": plannedStart,
+                "planned-end": plannedEnd
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status} ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('Success:', result);
+                return result;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function updateSubTaskTime(taskId, subtaskId, plannedStart, plannedEnd) {
+            const url = 'https://irdr4lzsd62kn2jheybijyai7e0vqfkt.lambda-url.ap-south-1.on.aws/';
+            const body = {
+                action: "update-subtask-time",
+                "task-id": taskId,
+                "subtask-id":subtaskId,
+                "email": email,
+                "planned-start": plannedStart,
+                "planned-end": plannedEnd
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status} ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('Success:', result);
+                return result;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+
+        // Initialize tasks on page load
+        AddTasks();
+
+
+
     </script>
 </body>
+
 </html>

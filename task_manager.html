@@ -160,6 +160,45 @@
             background-color: rgb(0, 89, 255);
             color: white;
         }
+      
+        .submission-version-header
+        {
+            position: relative;
+            display: inline;
+            padding: 5px;
+            font-weight: bold;
+            font-size: small;
+            margin-right: 10px;
+            background-color: #919191;
+            color: white;
+            border-radius: 5px;
+        }
+        .file-style
+        {
+            position: relative;
+            display: inline;
+            width: fit-content;
+            font-size: small;
+            text-decoration: none;
+            padding: 8px 15px;
+            font-weight: bold;
+            background-color: #383838;
+            color: white;
+            border-radius: 5px;
+            border: 1px solid #3333336e;
+            margin:5px;
+            box-sizing: border-box;
+        }
+        .file-style:hover
+        {
+            background-color: #3a8fff;
+        }
+        .submission-item
+        {
+            background-color: #9fffa21a;
+            margin-bottom:15px;
+            padding:20px;
+        }
     </style>
 </head>
 <body>
@@ -187,7 +226,7 @@
     <div id="taskResources">Task resources</div>
     <hr/>
     <div >
-        <h5>Subtasks</h5>
+        <h5><b>Subtasks</b></h5>
         <div id="subtaskList" class="mb-4"></div>
         <div class="add-subtask-form" style="margin-top:-16px;">
             <div class="input-group mb-3">
@@ -197,11 +236,11 @@
         </div>
     </div>
     <hr/>
-    <h5>Submissions</h5>
-    <div id="submissionList" class="mb-4"></div>
+    <h5><b>Submissions</b></h5>
     <div class="add-submission-form">
-        <button class="btn btn-outline-primary" type="button" onclick="openModal()">+ New Submission</button>
+        <button class="btn btn-outline-primary" type="button" onclick="openModal()" style="margin-bottom: 20px;">+ New Submission</button>
     </div>
+    <div id="submissionList" class="mb-4"></div>
 </div>
 
 <!-- Add/Edit Task Modal -->
@@ -540,6 +579,20 @@ function renderTaskList() {
     .then(response => response.json())
     .then(data => {
         test_state = data;
+        console.log(test_state);
+        if(!test_state || Object.keys(test_state).length === 0){
+            window.location.href = 'LandingPage.html';
+            return;
+        }
+        if(!test_state["test-start-time"]){
+            window.location.href = 'StartTest.html';
+            return;
+        }
+        if(!test_state["intro-videos-status"]){
+            window.location.href = 'IntroVideos.html';
+            return;
+        }
+
 
         // Ensure test_state and test_state.tasks are defined
         if (test_state && test_state.tasks && Array.isArray(test_state.tasks)) {
@@ -548,26 +601,29 @@ function renderTaskList() {
             var tasks = test_state.tasks;
             
             tasks.forEach(task => {
-                const taskItem = document.createElement('div');
-                taskItem.onclick = function() {
-                    let currentUrl = new URL(window.location.href);
-                    currentUrl.searchParams.set('taskid', task['task-id']);
-                    window.location.href = currentUrl.toString();
-                };
+                if(task['task-agreed'])
+                {
+                    const taskItem = document.createElement('div');
+                    taskItem.onclick = function() {
+                        let currentUrl = new URL(window.location.href);
+                        currentUrl.searchParams.set('taskid', task['task-id']);
+                        window.location.href = currentUrl.toString();
+                    };
 
-                taskItem.className = 'task-item';
-                taskItem.innerHTML = `
-                    <div>
-                        <strong>${task['task-title']}</strong>
-                    </div>
-                    <div>
-                        <span class="badge more-info">${task.subtasks.filter(st => !st['subtask-status']).length} Pending Subtasks</span>
-                        <span class="badge more-info">${task['task-submissions']?task['task-submissions'].length:0} Submissions</span>
-                        <span class="badge more-info">Deadline: ${task['task-deadline']}</span>
-                        <span class="task-status badge bg-primary">${task['task-status']}</span>
-                    </div>
-                `;
-                taskList.appendChild(taskItem);
+                    taskItem.className = 'task-item';
+                    taskItem.innerHTML = `
+                        <div>
+                            <strong>${task['task-title']}</strong>
+                        </div>
+                        <div>
+                            <span class="badge more-info">${task.subtasks.filter(st => !st['subtask-status']).length} Pending Subtasks</span>
+                            <span class="badge more-info">${task['task-submissions']?task['task-submissions'].length:0} Submissions</span>
+                            <span class="badge more-info">Deadline: ${task['task-end-time']}</span>
+                            <span class="task-status badge bg-primary">${task['task-status']}</span>
+                        </div>
+                    `;
+                    taskList.appendChild(taskItem);
+                }
             });
         } else {
             console.error('Tasks not found or invalid format:', test_state);
@@ -594,6 +650,21 @@ function DisplayTaskData(taskId) {
     .then(data => {
         test_state = data;
 
+        console.log(test_state);
+        if(!test_state || Object.keys(test_state).length === 0){
+            window.location.href = 'LandingPage.html';
+            return;
+        }
+        if(!test_state["test-start-time"]){
+            window.location.href = 'StartTest.html';
+            return;
+        }
+        if(!test_state["intro-videos-status"]){
+            window.location.href = 'IntroVideos.html';
+            return;
+        }
+
+
         // Ensure test_state and test_state.tasks are defined
         if (test_state && test_state.tasks && Array.isArray(test_state.tasks)) {
             currentTaskId = taskId;
@@ -603,12 +674,12 @@ function DisplayTaskData(taskId) {
             // Set modal content
             document.getElementById('taskTitle').textContent = task['task-title'];
             document.getElementById('taskDescription').textContent = task['task-description'];
-            document.getElementById('taskDeadline').textContent = `Deadline: ${task['task-end-time']}`;
+            document.getElementById('taskDeadline').innerHTML = `<hr><b>Deadline:</b> ${task['task-end-time']}`;
             document.getElementById('taskStatus').value = task['task-status'];
 
             // Render resources
-            const resources = task['task-resources'].map(res => `<br><a href="${res}" target="_blank">${getFileNameFromUrl(res)}</a>`).join(', ');
-            document.getElementById('taskResources').innerHTML = `Resources: ${resources}`;
+            const resources = task['task-resources'].map(res => `<a class="file-style" href="${res}" target="_blank" download>${getFileNameFromUrl(res)}</a>`).join(' ');
+            document.getElementById('taskResources').innerHTML = `<hr><b>Resources:</b> ${resources}`;
 
             // Render subtasks
             const subtaskList = document.getElementById('subtaskList');
@@ -617,7 +688,7 @@ function DisplayTaskData(taskId) {
                 const subtaskItem = document.createElement('div');
                 subtaskItem.className = `subtask-item ${subtask['subtask-status'] ? 'completed' : ''}`;
                 subtaskItem.innerHTML = `
-                    <span class="editable" contenteditable="true" onblur="editSubtask('${subtask['subtask-id']}', this.textContent)">${subtask['subtask-title']}</span>
+                    <span class="editable" contenteditable="true" style="padding-left:10px;padding-right:10px;" onblur="editSubtask('${subtask['subtask-id']}', this.textContent)">${subtask['subtask-title']}</span>
                     <div>
                         <button class="btn btn-outline-success btn-sm" onclick="toggleSubtaskStatus('${subtask['subtask-id']}')">
                             <i class="fas fa-check"></i>
@@ -633,17 +704,19 @@ function DisplayTaskData(taskId) {
             // Render submissions
             const submissionList = document.getElementById('submissionList');
             submissionList.innerHTML = '';
-            task['task-submissions'].forEach(submission => {
+            submissionLength = task['task-submissions'].length;
+            task['task-submissions'].slice().reverse().forEach((submission,index) => {
                 const submissionItem = document.createElement('div');
                 submissionItem.className = 'submission-item';
                 submissionItem.innerHTML = `
                     <div>
+                        <span class="submission-version-header">V${submissionLength-index}</span>
                         <span>
-                            ${submission['task-submission-title']}
+                            <b>${submission['task-submission-title']}</b>
                         </span>
-                        <p>${submission['task-submission-description']}</p>
+                        <p style="margin-top:10px;">${submission['task-submission-description']}</p>
                         <div>
-                            Files: ${submission['task-submission-files'].map(res => `<br><a href="${res}" target="_blank">${getFileNameFromUrl(res)}</a>`).join('')}
+                            <b>Files:</b> ${submission['task-submission-files'].map(res => `<a class="file-style" href="${res}" target="_blank" download>${getFileNameFromUrl(res)}</a>`).join('')}
                         </div>
                     </div>
                 `;
@@ -705,8 +778,8 @@ function addSubtask() {
                 "subtask-id":generateUUID(),
                 "subtask-title":subtaskTitle,
                 "subtask-status":false,
-                "subtask-planned-start":test_state.tasks.find(t => t['task-id'] === currentTaskId)["task-start"],
-                "subtask-planned-end":test_state.tasks.find(t => t['task-id'] === currentTaskId)["task-deadline"]
+                "subtask-planned-start":test_state.tasks.find(t => t['task-id'] === currentTaskId)["task-start-time"],
+                "subtask-planned-end":test_state.tasks.find(t => t['task-id'] === currentTaskId)["task-end-time"]
             }
         })
     })
