@@ -201,7 +201,7 @@
                     body: JSON.stringify(requestBody)
                 });
 
-                if (response.status === 200) {
+                if (response.status === 200 || response.status === 201) {
                     // Successfully started the test
                     BeginTest();
                 } else {
